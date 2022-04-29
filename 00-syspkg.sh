@@ -62,3 +62,11 @@ apt-get install ninja-build
 
 pip3 install --system pyinstaller
 
+echo Packages for DFFRAM
+
+pip3 install --system click pyyaml
+
+echo Packages for Linux development
+
+apt install device-tree-compiler
+
