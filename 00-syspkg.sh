@@ -70,3 +70,7 @@ echo Packages for Linux development
 
 apt install device-tree-compiler
 
+echo Packages for ngspice
+
+apt-get install libxaw7-dev
+
