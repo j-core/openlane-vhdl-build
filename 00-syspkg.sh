@@ -9,6 +9,7 @@
 echo Installing packages for toolchains and toolflows...
 
 apt-get install vim
+apt-get install bvi
 apt-get install build-essential manpages-dev
 apt-get install tcl-dev
 apt-get install tk-dev
@@ -21,6 +22,7 @@ apt-get install libxt-dev
 apt-get install wxgtk3.0
 apt-get install autoconf
 apt-get install cmake
+apt-get install libvz2
 apt-get install libftdi-dev
 apt-get install libffi-dev
 apt-get install flex bison
@@ -73,4 +75,9 @@ apt install device-tree-compiler
 echo Packages for ngspice
 
 apt-get install libxaw7-dev
+
+echo Packages for soc_top tools
+
+apt-get install default-jdk
+echo Do something about installing lein for all users...
 
