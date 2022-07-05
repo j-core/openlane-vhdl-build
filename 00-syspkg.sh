@@ -33,6 +33,7 @@ apt-get install libcairo-dev
 apt-get install autotools-dev clang lcov libpcre3-dev python3-dev tcllib zlib1g-dev
 apt-get install libgomp1 tcl-tclreadline
 apt-get install pip
+apt-get install autossh
 
 echo Running pip to install Python dependancies...
 

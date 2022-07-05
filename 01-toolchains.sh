@@ -131,10 +131,13 @@ echo building a bare sh2-elf gcc for C language
 mkdir bare-gcc
 cd bare-gcc
 
-../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_gcc/configure --prefix=$PREFIX  --target=sh2-elf --disable-bootstrap --disable-assembly --disable-werror --disable-libmudflap --disable-libsanitizer --disable-gnu-indirect-function --disable-libmpx --disable-libmudflap --disable-libstdcxx-pch --disable-ssp --disable-libssp --enable-languages=c --with-newlib --without-headers
-make -j8
+../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_gcc/configure --prefix=$PREFIX  --target=sh2-elf --disable-bootstrap --disable-assembly --disable-werror --disable-libmudflap --disable-libsanitizer --disable-gnu-indirect-function --disable-libmpx --disable-libmudflap --disable-libstdcxx-pch --disable-ssp --disable-libssp --enable-languages=c,c++ --with-newlib --without-headers --disable-hosted-libstdcxx
+
+make -j8 all-gcc
+make -j8 all-target-libgcc
 
 echo install bare metal compiler
-make install
+make install-strip-gcc
+make install-strip-target-libgcc
 
 cd ..
