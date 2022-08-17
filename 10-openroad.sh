@@ -8,36 +8,11 @@ cd src
 
 git clone --recursive https://github.com/The-OpenROAD-Project/OpenROAD.git
 cd OpenROAD
-git checkout --recurse-submodules c1c315118e68926dfff368f85e13bf50adaa920f
+#git checkout --recurse-submodules c1c315118e68926dfff368f85e13bf50adaa920f
+git checkout --recurse-submodules 4a99e88667b0840531ca0096c4fa0da8f80d6cb1
 
-patch -p1 << EOF
-diff --git a/src/cts/src/CMakeLists.txt b/src/cts/src/CMakeLists.txt
-index 3b0a21ea2..0b0ec2812 100644
---- a/src/cts/src/CMakeLists.txt
-+++ b/src/cts/src/CMakeLists.txt
-@@ -35,7 +35,7 @@
- 
- include("openroad")
- 
--find_package(LEMON REQUIRED)
-+find_package(LEMON NAMES LEMON lemon REQUIRED)
- 
- swig_lib(NAME      cts
-          NAMESPACE cts
-diff --git a/src/dpo/CMakeLists.txt b/src/dpo/CMakeLists.txt
-index 0eddbe67e..908765ed2 100644
---- a/src/dpo/CMakeLists.txt
-+++ b/src/dpo/CMakeLists.txt
-@@ -38,7 +38,7 @@ swig_lib(NAME         dpo
-          SCRIPTS      src/Optdp.tcl
- )
- 
--find_package(LEMON REQUIRED)
-+find_package(LEMON NAMES LEMON lemon REQUIRED)
- 
- target_sources(dpo
-   PRIVATE
-EOF
+#patch -p1 << EOF
+#EOF
 
 cd ..
 

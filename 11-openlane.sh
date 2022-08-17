@@ -56,7 +56,7 @@ cd OpenLane
 
 patch -p1 << EOF
 diff --git a/dependencies/installer.py b/dependencies/installer.py
-index c8f64ee..d5fe268 100644
+index b474097..e5dd669 100644
 --- a/dependencies/installer.py
 +++ b/dependencies/installer.py
 @@ -54,8 +54,8 @@ def sh(*args: Tuple[str], root: Union[bool, str] = False, **kwargs):
@@ -71,26 +71,18 @@ index c8f64ee..d5fe268 100644
          subprocess.run(
              args,
 diff --git a/dependencies/tool_metadata.yml b/dependencies/tool_metadata.yml
-index d60b131..a37dbe6 100644
+index 9fa5671..86f40a8 100644
 --- a/dependencies/tool_metadata.yml
 +++ b/dependencies/tool_metadata.yml
-@@ -21,6 +21,7 @@
-     make clean
-     make -j\$(nproc) \$READLINE_CXXFLAGS
-     make install
-+  in_install: false
- - name: drcu
-   repo: https://github.com/cuhk-eda/dr-cu
-   commit: 427b4a4f03bb98d8a78b1712fe9e52cfb83a8347
-@@ -41,6 +42,7 @@
-     make clean
+@@ -16,6 +16,7 @@
+     make database/database.h
      make -j\$(nproc)
      make install
 +  in_install: false
  - name: netgen
    repo: https://github.com/rtimothyedwards/netgen
    commit: bfb01e032f668c09ff43e889f35d611ef0e4a317
-@@ -49,6 +51,7 @@
+@@ -24,6 +25,7 @@
      make clean
      make -j\$(nproc)
      make install
@@ -98,7 +90,7 @@ index d60b131..a37dbe6 100644
  - name: padring
    repo: https://github.com/donn/padring
    commit: b2a64abcc8561d758c0bcb3945117dcb13bd9dca
-@@ -76,6 +79,7 @@
+@@ -51,6 +53,7 @@
      make PREFIX=\$PREFIX config-gcc
      make PREFIX=\$PREFIX -j\$(nproc)
      make PREFIX=\$PREFIX install
@@ -107,7 +99,7 @@ index d60b131..a37dbe6 100644
    repo: https://github.com/KLayout/klayout
    commit: 428d0fe8c941faece4eceebc54170cc04d916c03
 diff --git a/flow.tcl b/flow.tcl
-index a5e2c89..e2b8c03 100755
+index a011303..b2cf81a 100755
 --- a/flow.tcl
 +++ b/flow.tcl
 @@ -12,7 +12,9 @@
@@ -119,37 +111,36 @@ index a5e2c89..e2b8c03 100755
 +set ::env(PDK_ROOT) "$PREFIX/share/pdk"
 +set ::env(OPENLANE_ROOT) "$PREFIX/share/OpenLane"
  set ::env(SCRIPTS_DIR) "\$::env(OPENLANE_ROOT)/scripts"
-
+ 
  if { [file exists \$::env(OPENLANE_ROOT)/install/env.tcl ] } {
 diff --git a/scripts/tcl_commands/synthesis.tcl b/scripts/tcl_commands/synthesis.tcl
-index 311f81d..6287fbc 100755
+index 794178a..21c8fc0 100755
 --- a/scripts/tcl_commands/synthesis.tcl
 +++ b/scripts/tcl_commands/synthesis.tcl
-@@ -51,10 +51,18 @@ proc run_yosys {args} {
-         lappend ::env(LIB_SYNTH_COMPLETE_NO_PG) \$lib_path
+@@ -62,10 +62,17 @@ proc run_yosys {args} {
+         lappend ::env(LIB_SYNTH_NO_PG) \$lib_path
      }
  
 -    try_catch \$::env(SYNTH_BIN) \\
 -        -c \$::env(SYNTH_SCRIPT) \\
--        -l [index_file \$::env(synthesis_logs)/synthesis.log] \\
+-        -l \$arg_values(-log)\\
 -        |& tee \$::env(TERMINAL_OUTPUT)
 +    if { [info exists ::env(SYNTH_BIN_OPTIONS)] } {
-+        try_catch \$::env(SYNTH_BIN) \\
-+            \$::env(SYNTH_BIN_OPTIONS) \\
-+            -c \$::env(SYNTH_SCRIPT) \\
-+            -l [index_file \$::env(synthesis_logs)/synthesis.log] \\
-+            |& tee \$::env(TERMINAL_OUTPUT)
++       try_catch \$::env(SYNTH_BIN) \$::env(SYNTH_BIN_OPTIONS) \\
++           -c \$::env(SYNTH_SCRIPT) \\
++           -l \$arg_values(-log)\\
++           |& tee \$::env(TERMINAL_OUTPUT)
 +    } else {
-+        try_catch \$::env(SYNTH_BIN) \\
-+            -c \$::env(SYNTH_SCRIPT) \\
-+            -l [index_file \$::env(synthesis_logs)/synthesis.log] \\
-+            |& tee \$::env(TERMINAL_OUTPUT)
++       try_catch \$::env(SYNTH_BIN) \\
++           -c \$::env(SYNTH_SCRIPT) \\
++           -l \$arg_values(-log)\\
++           |& tee \$::env(TERMINAL_OUTPUT)
 +    }
  
      if { ! [info exists flags_map(-no_set_netlist)] } {
          set_netlist \$::env(SAVE_NETLIST)
 diff --git a/scripts/yosys/synth.tcl b/scripts/yosys/synth.tcl
-index 3ff9653..2aff3f2 100755
+index b72f3d0..eaa46d9 100755
 --- a/scripts/yosys/synth.tcl
 +++ b/scripts/yosys/synth.tcl
 @@ -214,8 +214,23 @@ if { !(\$adder_type in [list "YOSYS" "FA" "RCA" "CSA"]) } {
@@ -177,9 +168,9 @@ index 3ff9653..2aff3f2 100755
 +    }
  }
  
- select -module \$vtop
+ if { [info exists ::env(SYNTH_PARAMETERS) ] } {
 diff --git a/scripts/yosys/synth_top.tcl b/scripts/yosys/synth_top.tcl
-index 8ed7ebd..342ced2 100755
+index bc294c5..902743d 100755
 --- a/scripts/yosys/synth_top.tcl
 +++ b/scripts/yosys/synth_top.tcl
 @@ -56,9 +56,23 @@ if { [info exists ::env(VERILOG_FILES_BLACKBOX)] } {
@@ -188,26 +179,26 @@ index 8ed7ebd..342ced2 100755
  
 +if { [info exists ::env(VERILOG_FILES)] } {
 +	for { set i 0 } { \$i < [llength \$::env(VERILOG_FILES)] } { incr i } {
-+	read_verilog {*}\$vIdirsArgs [lindex \$::env(VERILOG_FILES) \$i]
++		read_verilog {*}\$vIdirsArgs [lindex \$::env(VERILOG_FILES) \$i]
 +	}
 +}
 +
 +if { [info exists ::env(VHDL_FILES)] } {
 +	for { set i 0 } { \$i < [llength \$::env(VHDL_FILES)] } { incr i } {
-+	exec -- ghdl -a [lindex \$::env(VHDL_FILES) \$i]
++		exec -- ghdl -a [lindex \$::env(VHDL_FILES) \$i]
 +	}
 +}
  
 -for { set i 0 } { \$i < [llength \$::env(VERILOG_FILES)] } { incr i } {
--  read_verilog {*}\$vIdirsArgs [lindex \$::env(VERILOG_FILES) \$i]
+-	read_verilog {*}\$vIdirsArgs [lindex \$::env(VERILOG_FILES) \$i]
 +if { [info exists ::env(VHDL_MODULE_IMPORTS)] } {
 +	for { set i 0 } { \$i < [llength \$::env(VHDL_MODULE_IMPORTS)] } { incr i } {
-+        exec -- ghdl -e -Wno-binding [lindex \$::env(VHDL_MODULE_IMPORTS) \$i]
-+	ghdl [lindex \$::env(VHDL_MODULE_IMPORTS) \$i]
++		exec -- ghdl -e -Wno-binding [lindex \$::env(VHDL_MODULE_IMPORTS) \$i]
++		ghdl [lindex \$::env(VHDL_MODULE_IMPORTS) \$i]
 +	}
  }
  
- select -module \$vtop
+ if { [info exists ::env(SYNTH_PARAMETERS) ] } {
 EOF
 
 echo patched.
