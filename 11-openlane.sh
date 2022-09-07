@@ -71,10 +71,18 @@ index b474097..e5dd669 100644
          subprocess.run(
              args,
 diff --git a/dependencies/tool_metadata.yml b/dependencies/tool_metadata.yml
-index 9fa5671..86f40a8 100644
+index a8ad3a5..73edc32 100644
 --- a/dependencies/tool_metadata.yml
 +++ b/dependencies/tool_metadata.yml
-@@ -16,6 +16,7 @@
+@@ -7,6 +7,7 @@
+     make clean
+     make -j\$(nproc) \$READLINE_CXXFLAGS
+     make install
++  in_install: false
+ - name: magic
+   repo: https://github.com/rtimothyedwards/magic
+   commit: 5d51e10fb969b31e6e95b5fb78d21efeccc73c14
+@@ -16,6 +17,7 @@
      make database/database.h
      make -j\$(nproc)
      make install
@@ -82,7 +90,7 @@ index 9fa5671..86f40a8 100644
  - name: netgen
    repo: https://github.com/rtimothyedwards/netgen
    commit: bfb01e032f668c09ff43e889f35d611ef0e4a317
-@@ -24,6 +25,7 @@
+@@ -24,6 +26,7 @@
      make clean
      make -j\$(nproc)
      make install
@@ -90,7 +98,7 @@ index 9fa5671..86f40a8 100644
  - name: padring
    repo: https://github.com/donn/padring
    commit: b2a64abcc8561d758c0bcb3945117dcb13bd9dca
-@@ -51,6 +53,7 @@
+@@ -51,6 +54,7 @@
      make PREFIX=\$PREFIX config-gcc
      make PREFIX=\$PREFIX -j\$(nproc)
      make PREFIX=\$PREFIX install
