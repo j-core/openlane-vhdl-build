@@ -5,6 +5,7 @@ cd /root/build
 /root/server/01-toolchains.sh
 /root/server/02-ygni.sh
 /root/server/03-magic.sh
+/root/server/04-open_pdk.sh
 
 #(cd / ; tar -jxvf /root/server/sky130_pdk-20220428.tar.bz2 )
 
