@@ -8,9 +8,11 @@
 
 echo Installing packages for toolchains and toolflows...
 
+apt-get install wget
 apt-get install vim
 apt-get install bvi
 apt-get install build-essential manpages-dev
+apt-get install llvm-dev
 apt-get install tcl-dev
 apt-get install tk-dev
 apt-get install libboost-dev
@@ -82,3 +84,5 @@ echo Packages for soc_top tools
 apt-get install default-jdk
 echo Do something about installing lein for all users...
 
+echo Packages for iverilog
+apt-get install gperf

@@ -46,6 +46,7 @@ make install
 
 cd ../../
 
+# For some reason openlane needs to build out of the install directory.
 echo clone OpenLane
 echo putting it in $PREFIX/share
 
@@ -54,6 +55,12 @@ git clone --recursive https://github.com/The-OpenROAD-Project/OpenLane.git
 
 cd OpenLane
 
+# Tell openthingy not to build a zillion other things internally
+# klayout|openroad_app|git|open_pdks already yanked
+sed -i -E -e '/^[-][ \t]*name:[ \t]*(cvc_rv|magic|netgen|yosys)[ \t]*$/a\' \
+          -e '  in_install: false' dependencies/tool_metadata.yml
+
+# We're running as root but it still tries to sudo?
 patch -p1 << EOF
 diff --git a/dependencies/installer.py b/dependencies/installer.py
 index b474097..e5dd669 100644
@@ -70,42 +77,6 @@ index b474097..e5dd669 100644
      try:
          subprocess.run(
              args,
-diff --git a/dependencies/tool_metadata.yml b/dependencies/tool_metadata.yml
-index a8ad3a5..73edc32 100644
---- a/dependencies/tool_metadata.yml
-+++ b/dependencies/tool_metadata.yml
-@@ -7,6 +7,7 @@
-     make clean
-     make -j\$(nproc) \$READLINE_CXXFLAGS
-     make install
-+  in_install: false
- - name: magic
-   repo: https://github.com/rtimothyedwards/magic
-   commit: 5d51e10fb969b31e6e95b5fb78d21efeccc73c14
-@@ -16,6 +17,7 @@
-     make database/database.h
-     make -j\$(nproc)
-     make install
-+  in_install: false
- - name: netgen
-   repo: https://github.com/rtimothyedwards/netgen
-   commit: bfb01e032f668c09ff43e889f35d611ef0e4a317
-@@ -24,6 +26,7 @@
-     make clean
-     make -j\$(nproc)
-     make install
-+  in_install: false
- - name: padring
-   repo: https://github.com/donn/padring
-   commit: b2a64abcc8561d758c0bcb3945117dcb13bd9dca
-@@ -51,6 +54,7 @@
-     make PREFIX=\$PREFIX config-gcc
-     make PREFIX=\$PREFIX -j\$(nproc)
-     make PREFIX=\$PREFIX install
-+  in_install: false
- - name: klayout
-   repo: https://github.com/KLayout/klayout
-   commit: 428d0fe8c941faece4eceebc54170cc04d916c03
 diff --git a/flow.tcl b/flow.tcl
 index a011303..b2cf81a 100755
 --- a/flow.tcl
@@ -126,9 +97,9 @@ index 794178a..21c8fc0 100755
 --- a/scripts/tcl_commands/synthesis.tcl
 +++ b/scripts/tcl_commands/synthesis.tcl
 @@ -62,10 +62,17 @@ proc run_yosys {args} {
-         lappend ::env(LIB_SYNTH_NO_PG) \$lib_path
      }
  
+     set ::env(SAVE_NETLIST) \$arg_values(-output)
 -    try_catch \$::env(SYNTH_BIN) \\
 -        -c \$::env(SYNTH_SCRIPT) \\
 -        -l \$arg_values(-log)\\
@@ -144,9 +115,9 @@ index 794178a..21c8fc0 100755
 +           -l \$arg_values(-log)\\
 +           |& tee \$::env(TERMINAL_OUTPUT)
 +    }
- 
+
      if { ! [info exists flags_map(-no_set_netlist)] } {
-         set_netlist \$::env(SAVE_NETLIST)
+         set_netlist -lec \$::env(SAVE_NETLIST)
 diff --git a/scripts/yosys/synth.tcl b/scripts/yosys/synth.tcl
 index b72f3d0..eaa46d9 100755
 --- a/scripts/yosys/synth.tcl
@@ -177,10 +148,10 @@ index b72f3d0..eaa46d9 100755
  }
  
  if { [info exists ::env(SYNTH_PARAMETERS) ] } {
-diff --git a/scripts/yosys/synth_top.tcl b/scripts/yosys/synth_top.tcl
+diff --git a/scripts/yosys/elaborate.tcl b/scripts/yosys/elaborate.tcl
 index bc294c5..902743d 100755
---- a/scripts/yosys/synth_top.tcl
-+++ b/scripts/yosys/synth_top.tcl
+--- a/scripts/yosys/elaborate.tcl
++++ b/scripts/yosys/elaborate.tcl
 @@ -56,9 +56,23 @@ if { [info exists ::env(VERILOG_FILES_BLACKBOX)] } {
  	}
  }

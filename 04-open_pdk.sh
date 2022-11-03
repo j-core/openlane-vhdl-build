@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 PREFIX=/opt/toolflows
 
@@ -12,7 +12,8 @@ echo build pdk
 
 cd open_pdks
 
-ulimit -n 65536
+ulimit -Hn 65536
+ulimit  -n 65536
 ./configure --prefix=$PREFIX --with-sky130-variants=A --enable-sky130-pdk
 
 make
