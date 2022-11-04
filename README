@@ -1,0 +1,12 @@
+Build ASIC tools in a new clean chroot:
+
+1) Run ./debootstrap.sh to create a new devuan chimaera root filesystem
+(I.E. known-good reproducible build environment).
+
+2) copy all the server scripts into the new root filesystem.
+
+3) Run ./launch.sh to chroot into it as a simple container
+(unshares all but net namespace).
+
+4) Run build.sh to run the other scripts in sequence.
+
