@@ -1,4 +1,39 @@
-Build ASIC tools in a new clean chroot:
+Builds and installs all of the tools for J-Core CPU/SoC chip design and software development.
+These are just straight forward shell scripts, a good way to see what is actually needed.
+
+Notes:
+
+- Installs compilers in /opt/toolchains and hardware tools in /opt/toolchains.
+- Builds J1/J2 J-Core compilers for bare metal and Linux development.
+- Assumes either a clean, nothing added, minimal Debian install. Either debootstrap or bare metal
+- Integrates GHDL for VHDL into the Yosys/OpenLane flow with as few changes as necessary
+- Builds and installs tools itself, turning off as much OpenLane (volare) build machinery as possible
+- That is because we use the tools outside of an OpenLane context as well
+- iCE40 FPGA tools are also installed
+- 00 installs pre-requisites for all the tools assuming a clean devuan (Debian) install
+- 01 - 03 also work on MacOS, with small tweaking (e.g. MacOS uses clang instead of gcc)
+- We have native OpenROAD OpenLane on Mac OS X also, but it's about 9mo old.
+- There is little error checking.
+- You don't need to run all the install scripts if you don't need the tools they install.
+
+Build Compiler, Synthesis, FPGA and ASIC tools on a (clean, if you like) Devuan or Debian install:
+
+1) Install Devuan, Debian or (probably) Ubuntu
+
+2) Become root
+
+3) Clone this repo in a working directory.  You will need several 10s of GB at least
+
+4) Run ./build.sh from this repo.
+
+5) Add /opt/toolchains/bin and /opt/toolflows/bin to your path
+
+This will run 00-syspkg.sh to install pre-requisites, and then runs the rest of the scripts in
+order to install the full set of tools and Sky130 PDK.  You can run the individual scripts
+manually also, but take care to create ./src and ./build first.  Most are self contained, but
+e.g. OpenLane depends on basically everything else...
+
+Build ASIC tools in a new clean chroot (for e.g. packaging, containerization or testing)
 
 1) Run ./debootstrap.sh to create a new devuan chimaera root filesystem
 (I.E. known-good reproducible build environment).
@@ -9,4 +44,3 @@ Build ASIC tools in a new clean chroot:
 (unshares all but net namespace).
 
 4) Run build.sh to run the other scripts in sequence.
-
