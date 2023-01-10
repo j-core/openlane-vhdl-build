@@ -24,4 +24,8 @@ echo Building simulator tools
 ./13-irsim.sh &&
 ./14-iverilog.sh || exit 1
 
+echo Building verification tools
+./15-sby.sh &&
+./16-sat.sh || exit 1
+
 echo Done.
