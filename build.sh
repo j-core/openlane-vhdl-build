@@ -26,6 +26,7 @@ echo Building simulator tools
 
 echo Building verification tools
 ./15-sby.sh &&
-./16-sat.sh || exit 1
+./16-sat.sh &&
+./17-mcy.sh || exit 1
 
 echo Done.
