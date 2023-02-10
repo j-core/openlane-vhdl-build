@@ -54,23 +54,22 @@ if [ 1 -eq 1 ]; then
 git clone ../src/yosys
 cd yosys
 
-#echo checking out v0.22 f109fa3d4c56fe33bc626c298e04d45ae510dd0e
-#git checkout --recurse-submodules f109fa3d4c56fe33bc626c298e04d45ae510dd0e
-echo checking out v0.25 e02b7f64bc7e3a7f0eb1aa4e25dd6e7903a91cb0
-git checkout --recurse-submodules e02b7f64bc7e3a7f0eb1aa4e25dd6e7903a91cb0
+#echo checking out v0.25 e02b7f64bc7e3a7f0eb1aa4e25dd6e7903a91cb0
+#git checkout --recurse-submodules e02b7f64bc7e3a7f0eb1aa4e25dd6e7903a91cb0
+echo checking out v0.26 7e588664e7efa36ff473f0497feacaad57f5e90c
+git checkout --recurse-submodules 7e588664e7efa36ff473f0497feacaad57f5e90c
 
 patch -p1 << EOF
 diff --git a/Makefile b/Makefile
-index 423edc07..51f13cb6 100644
+index 826562fdf..b9e473d6c 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -1,6 +1,6 @@
+@@ -1,5 +1,5 @@
 
 -CONFIG := clang
--# CONFIG := gcc
 +# CONFIG := clang
+-# CONFIG := gcc
 +CONFIG := gcc
- # CONFIG := gcc-4.8
  # CONFIG := afl-gcc
  # CONFIG := emcc
 @@ -53,7 +53,7 @@ SANITIZER =
