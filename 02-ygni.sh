@@ -54,10 +54,10 @@ if [ 1 -eq 1 ]; then
 git clone ../src/yosys
 cd yosys
 
-#echo checking out v0.25 e02b7f64bc7e3a7f0eb1aa4e25dd6e7903a91cb0
-#git checkout --recurse-submodules e02b7f64bc7e3a7f0eb1aa4e25dd6e7903a91cb0
-echo checking out v0.26 7e588664e7efa36ff473f0497feacaad57f5e90c
-git checkout --recurse-submodules 7e588664e7efa36ff473f0497feacaad57f5e90c
+# echo checking out v0.26 7e588664e7efa36ff473f0497feacaad57f5e90c
+# git checkout --recurse-submodules 7e588664e7efa36ff473f0497feacaad57f5e90c
+echo checking out v0.27 5f88c218b58cabc20f001c4bf77733670305864e
+git checkout --recurse-submodules 5f88c218b58cabc20f001c4bf77733670305864e
 
 patch -p1 << EOF
 diff --git a/Makefile b/Makefile
@@ -109,6 +109,9 @@ if [ 1 -eq 1 ]; then
 
 git clone ../src/ghdl
 cd ghdl 
+
+echo checking out v3.0 7de967c51f352fe2d724dbec549b71a392e5ebae
+git checkout --recurse-submodules 7de967c51f352fe2d724dbec549b71a392e5ebae
 
 export PATH=/opt/gnat/bin:$PATH
 #./configure --prefix=$PREFIX

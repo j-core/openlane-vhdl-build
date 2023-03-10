@@ -16,6 +16,9 @@ ulimit -Hn 65536
 ulimit  -n 65536
 ./configure --prefix=$PREFIX --with-sky130-variants=A --enable-sky130-pdk
 
+echo "make first time..."
+make
+echo "make 2nd time because https://github.com/RTimothyEdwards/open_pdks/issues/315"
 make
 make install
 
