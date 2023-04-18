@@ -23,6 +23,78 @@ echo install linux toolchain
 make install
 cd ..
 
+echo clone target side libraries
+git clone https://github.com/sabotage-linux/netbsd-curses.git
+
+echo patching curses for J-Core
+cd netbsd-curses
+rm infocmp/Makefile \
+   libcurses/EXAMPLES/Makefile \
+   libcurses/PSD.doc/Makefile \
+   nbperf/Makefile \
+   tabs/Makefile \
+   tic/Makefile \
+   tput/Makefile \
+   tset/Makefile
+
+patch -p1 << EOF 
+diff --git a/GNUmakefile b/GNUmakefile
+index d302ce1..4623ffb 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -1,7 +1,9 @@
+-HOSTCC ?= \$(CC)
++CROSS = sh2eb-linux-muslfdpic-
++HOSTCC = gcc
++CC = \$(CROSS)gcc
+ AWK ?= awk
+-AR ?= ar
+-RANLIB ?= ranlib
++AR = \$(CROSS)ar
++RANLIB = \$(CROSS)ranlib
+ HOST_SH ?= /bin/sh
+ LN ?= ln
+ INSTALL ?= ./install.sh
+@@ -11,7 +13,7 @@ SO_SUFFIX ?= .so
+ 
+ PIC = -fPIC
+ 
+-PREFIX=/usr/local
++PREFIX=/opt/toolchains/sh2eb-linux-muslfdpic
+ BINDIR=\$(PREFIX)/bin
+ LIBDIR=\$(PREFIX)/lib
+ INCDIR=\$(PREFIX)/include
+@@ -43,7 +45,7 @@ STATIC_BINS=0
+ endif
+ 
+ CFLAGS+=-Werror-implicit-function-declaration
+-CPPFLAGS+= -I. -I./libterminfo
++CPPFLAGS+= -I. -I./libterminfo -I./libcurses
+ 
+ TOOL_NBPERF=	nbperf/nbperf
+ NBPERF_SRCS=	nbperf/nbperf.c
+diff --git a/libterminfo/GNUmakefile b/libterminfo/GNUmakefile
+index ce0dc06..80b7992 100644
+--- a/libterminfo/GNUmakefile
++++ b/libterminfo/GNUmakefile
+@@ -5,8 +5,8 @@ USE_SHLIBDIR=	yes
+ LIB=		terminfo
+ WARNS?=		5
+ 
+-CPPFLAGS+=	-I.
+-CPPFLAGS+=	-I..
++CPPFLAGS+=	-I. -I../libcurses
++CPPFLAGS+=	-I.. -I../libcurses
+ 
+ SRCS=		term.c ti.c setupterm.c curterm.c tparm.c tputs.c
+ SRCS+=		compile.c hash.c
+EOF
+
+PATH=$PATH:/opt/toolchains/bin make CFLAGS=-Os LDFLAGS=-static all-static
+make CFLAGS=-Os LDFLAGS=-static install-headers install-stalibs
+
+cd ..
+
 echo building a bare sh2-elf binutils
 
 mkdir bare-binutils
