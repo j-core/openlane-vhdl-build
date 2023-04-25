@@ -13,6 +13,63 @@ echo config
 
 echo "OUTPUT = $PREFIX" > config.mak
 cat presets/j2-fdpic >> config.mak
+mkdir patches/musl-1.2.3 && cat >> patches/musl-1.2.3/0001-nommu.patch << 'EOF'
+--- a/src/legacy/daemon.c
++++ b/src/legacy/daemon.c
+@@ -17,3 +17,3 @@
+ 
+-	switch(fork()) {
++	switch(vfork()) {
+ 	case 0: break;
+@@ -25,3 +25,3 @@
+ 
+-	switch(fork()) {
++	switch(vfork()) {
+ 	case 0: break;
+--- a/src/misc/forkpty.c
++++ b/src/misc/forkpty.c
+@@ -8,2 +8,3 @@
+ 
++#ifndef __SH_FDPIC__
+ int forkpty(int *pm, char *name, const struct termios *tio, const struct winsize *ws)
+@@ -57,1 +58,2 @@
+ }
++#endif
+--- a/src/misc/wordexp.c
++++ b/src/misc/wordexp.c
+@@ -25,2 +25,3 @@
+ 
++#ifndef __SH_FDPIC__
+ static int do_wordexp(const char *s, wordexp_t *we, int flags)
+@@ -177,2 +178,3 @@
+ }
++#endif
+ 
+--- a/src/process/fork.c
++++ b/src/process/fork.c
+@@ -7,2 +7,3 @@
+ 
++#ifndef __SH_FDPIC__
+ static void dummy(int x)
+@@ -37,1 +38,2 @@
+ }
++#endif
+--- a/Makefile
++++ b/Makefile
+@@ -100,3 +100,3 @@
+ 	cp $< $@
+-	sed -n -e s/__NR_/SYS_/p < $< >> $@
++	sed -e s/__NR_/SYS_/ < $< >> $@
+ 
+--- a/arch/sh/bits/syscall.h.in
++++ b/arch/sh/bits/syscall.h.in
+@@ -2,3 +2,5 @@
+ #define __NR_exit                   1
++#ifndef __SH_FDPIC__
+ #define __NR_fork                   2
++#endif
+ #define __NR_read                   3
+EOF
 
 echo building sh2-fdpic linux toolchain
 
