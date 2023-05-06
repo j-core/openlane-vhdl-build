@@ -26,7 +26,6 @@ apt-get install tk-dev &&
 apt-get install libboost-dev &&
 apt-get install gnat &&
 apt-get install git &&
-apt-get install mercurial &&
 apt-get install libreadline-dev &&
 apt-get install libxt-dev &&
 apt-get install wxgtk3.0 &&
@@ -47,7 +46,8 @@ apt-get install autossh || exit 1
 
 echo Running pip to install Python dependancies...
 
-pip3 install --system pandas || exit 1
+pip3 install --system pandas &&
+apt-get install apt-get install docutils || exit 1
 
 echo Packages for KLayout
 
