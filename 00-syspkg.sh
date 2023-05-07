@@ -47,7 +47,7 @@ apt-get install autossh || exit 1
 echo Running pip to install Python dependancies...
 
 pip3 install --system pandas &&
-apt-get install apt-get install docutils || exit 1
+apt-get install docutils || exit 1
 
 echo Packages for KLayout
 
