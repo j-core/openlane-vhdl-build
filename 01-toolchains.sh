@@ -2,21 +2,20 @@
 
 # This script needs to be run from the directory where you've just build musl cross make
 
-export PREFIX=/opt/toolchains
+: ${PREFIX:=/opt/toolchains}
+export PREFIX
 
 echo clone musl-cross-make
 
-git clone https://github.com/richfelker/musl-cross-make.git
-cd musl-cross-make
+git clone https://github.com/richfelker/musl-cross-make.git &&
+cd musl-cross-make &&
 
-echo patch for musl 1.2.4
+echo patch for musl 1.2.4 &&
 
-patch -p1 << 'EOF'
-diff --git a/Makefile b/Makefile
-index 09f8c2d..5d3d805 100644
+patch -p1 << 'EOF' &&
 --- a/Makefile
 +++ b/Makefile
-@@ -4,7 +4,7 @@ SOURCES = sources
+@@ -4,13 +4,13 @@ SOURCES = sources
  CONFIG_SUB_REV = 3d5db9ebe860
  BINUTILS_VER = 2.33.1
  GCC_VER = 9.4.0
@@ -25,6 +24,13 @@ index 09f8c2d..5d3d805 100644
  GMP_VER = 6.1.2
  MPC_VER = 1.1.0
  MPFR_VER = 4.0.2
+ LINUX_VER = headers-4.19.88-1
+ 
+-GNU_SITE = https://ftpmirror.gnu.org/gnu
++GNU_SITE = https://ftp.gnu.org/gnu
+ GCC_SITE = $(GNU_SITE)/gcc
+ BINUTILS_SITE = $(GNU_SITE)/binutils
+ GMP_SITE = $(GNU_SITE)/gmp
 diff --git a/hashes/musl-1.2.4.tar.gz.sha1 b/hashes/musl-1.2.4.tar.gz.sha1
 new file mode 100644
 index 0000000..0f94407
@@ -34,14 +40,29 @@ index 0000000..0f94407
 +78eb982244b857dbacb2ead25cc0f631ce44204d  musl-1.2.4.tar.gz
 EOF
 
-echo config
+echo config &&
 
-echo "OUTPUT = $PREFIX" > config.mak
-cat presets/j2-fdpic >> config.mak
+echo "OUTPUT = $PREFIX" > config.mak &&
+cat presets/j2-fdpic >> config.mak &&
 
-echo patch for vfork 
+echo patch for specs &&
+cat >> patches/gcc-9.4.0/0020-gcc-specs.patch << 'EOF' &&
+--- gcc-9.4.0.orig/gcc/gcc.c	2021-06-01 02:53:04.800475820 -0500
++++ gcc-9.4.0/gcc/gcc.c	2023-05-12 22:49:06.476185322 -0500
+@@ -2178,7 +2179,7 @@
+       /* Is this a special command that starts with '%'? */
+              /* Don't allow this for the main specs file, since it would
+ 	 encourage people to overwrite it.  */
+-      if (*p == '%' && !main_p)
++      if (*p == '%')
+ 	{
+ 	  p1 = p;
+ 	  while (*p && *p != '\n')
+EOF
 
-mkdir patches/musl-1.2.4 && cat >> patches/musl-1.2.4/0001-nommu.patch << 'EOF'
+echo patch for vfork  &&
+
+mkdir patches/musl-1.2.4 && cat >> patches/musl-1.2.4/0001-nommu.patch << 'EOF' &&
 --- a/src/legacy/daemon.c
 +++ b/src/legacy/daemon.c
 @@ -17,3 +17,3 @@
@@ -99,20 +120,20 @@ mkdir patches/musl-1.2.4 && cat >> patches/musl-1.2.4/0001-nommu.patch << 'EOF'
  #define __NR_read                   3
 EOF
 
-echo building sh2-fdpic linux toolchain
+echo building sh2-fdpic linux toolchain &&
 
-make -j8
+make -j$(nproc) &&
 
-echo install linux toolchain
+echo install linux toolchain &&
 
-make install
-cd ..
+make install &&
+cd .. || exit 1
 
 echo clone target side libraries
-git clone https://github.com/sabotage-linux/netbsd-curses.git
+git clone https://github.com/sabotage-linux/netbsd-curses.git &&
 
-echo patching curses for J-Core
-cd netbsd-curses
+echo patching curses for J-Core &&
+cd netbsd-curses &&
 rm infocmp/Makefile \
    libcurses/EXAMPLES/Makefile \
    libcurses/PSD.doc/Makefile \
@@ -120,9 +141,9 @@ rm infocmp/Makefile \
    tabs/Makefile \
    tic/Makefile \
    tput/Makefile \
-   tset/Makefile
+   tset/Makefile &&
 
-patch -p1 << EOF 
+patch -p1 << EOF &&
 diff --git a/GNUmakefile b/GNUmakefile
 index d302ce1..4623ffb 100644
 --- a/GNUmakefile
@@ -145,7 +166,7 @@ index d302ce1..4623ffb 100644
  PIC = -fPIC
  
 -PREFIX=/usr/local
-+PREFIX=/opt/toolchains/sh2eb-linux-muslfdpic
++PREFIX=$PREFIX/sh2eb-linux-muslfdpic
  BINDIR=\$(PREFIX)/bin
  LIBDIR=\$(PREFIX)/lib
  INCDIR=\$(PREFIX)/include
@@ -175,26 +196,26 @@ index ce0dc06..80b7992 100644
  SRCS+=		compile.c hash.c
 EOF
 
-PATH=$PATH:/opt/toolchains/bin make CFLAGS=-Os LDFLAGS=-static all-static
-make CFLAGS=-Os LDFLAGS=-static install-headers install-stalibs
+PATH=$PATH:$PREFIX/bin make CFLAGS=-Os LDFLAGS=-static all-static &&
+make CFLAGS=-Os LDFLAGS=-static install-headers install-stalibs &&
 
-cd ..
+cd .. || exit 1
 
 echo building a bare sh2-elf binutils
 
-mkdir bare-binutils
-cd bare-binutils
+mkdir bare-binutils &&
+cd bare-binutils &&
 
-../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_binutils/configure --prefix=$PREFIX  --enable-deterministic-archives --target=sh2-elf --disable-separate-code --disable-werror
-make -j8
+../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_binutils/configure --prefix=$PREFIX  --enable-deterministic-archives --target=sh2-elf --disable-separate-code --disable-werror &&
+make -j$(nproc) &&
 
-echo install bare metal binutils
-make install
-cd ..
+echo install bare metal binutils &&
+make install &&
+cd .. || exit 1
 
 echo patching gcc for __attribute__ naked functions
 
-(cd musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_gcc/gcc/config/sh ; patch -p4 ) << EOF
+(cd musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_gcc/gcc/config/sh ; patch -p4 ) << EOF &&
 --- src_gcc/gcc/config/sh/sh.c.cas	2022-06-11 15:59:46.746762896 +0900
 +++ src_gcc/gcc/config/sh/sh.c	2022-06-11 16:32:06.714818662 +0900
 @@ -210,6 +210,7 @@
@@ -284,26 +305,30 @@ echo patching gcc for __attribute__ naked functions
  sh_check_pch_target_flags (int old_flags)
 EOF
 
-echo building a bare sh2-elf gcc for C language
-mkdir bare-gcc
-cd bare-gcc
+echo building a bare sh2-elf gcc for C language &&
+mkdir bare-gcc &&
+cd bare-gcc &&
 
-../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_gcc/configure --prefix=$PREFIX  --target=sh2-elf --disable-bootstrap --disable-assembly --disable-werror --disable-libmudflap --disable-libsanitizer --disable-gnu-indirect-function --disable-libmpx --disable-libmudflap --disable-libstdcxx-pch --disable-ssp --disable-libssp --enable-languages=c,c++ --with-newlib --without-headers --disable-hosted-libstdcxx
+../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_gcc/configure --prefix=$PREFIX  --target=sh2-elf --disable-bootstrap --disable-assembly --disable-werror --disable-libmudflap --disable-libsanitizer --disable-gnu-indirect-function --disable-libmpx --disable-libmudflap --disable-libstdcxx-pch --disable-ssp --disable-libssp --enable-languages=c,c++ --with-newlib --without-headers --disable-hosted-libstdcxx &&
 
-make -j8 all-gcc
-make -j8 all-target-libgcc
+make -j$(nproc) all-gcc &&
+make -j$(nproc) all-target-libgcc &&
 
-echo install bare metal compiler
-make install-strip-gcc
-make install-strip-target-libgcc
+echo install bare metal compiler &&
+make install-strip-gcc &&
+make install-strip-target-libgcc &&
+ln -s sh2-elf-gcc "$PREFIX"/bin/sh2-elf-cc &&
 
-cd ..
+cd .. || exit 1
 
-echo install mercurial
-wget https://www.mercurial-scm.org/release/mercurial-6.4.2.tar.gz
-tar -zxvf mercurial-6.4.2.tar.gz
-cd mercurial-6.4.2
+if [ $(id -u) -eq 0 ]
+then
+	echo install mercurial
+	wget https://www.mercurial-scm.org/release/mercurial-6.4.2.tar.gz &&
+	tar -zxvf mercurial-6.4.2.tar.gz &&
+	cd mercurial-6.4.2 &&
 
-make install
+	make install &&
 
-cd ..
+	cd .. || exit 1
+fi
