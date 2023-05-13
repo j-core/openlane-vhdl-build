@@ -54,10 +54,10 @@ if [ 1 -eq 1 ]; then
 git clone ../src/yosys
 cd yosys
 
-#echo checking out v0.27 5f88c218b58cabc20f001c4bf77733670305864e
-#git checkout --recurse-submodules 5f88c218b58cabc20f001c4bf77733670305864e
-echo checking out v0.28 0d6f4b068338c25f3de4ddab0747f714602037b5
-git checkout --recurse-submodules 0d6f4b068338c25f3de4ddab0747f714602037b5
+#echo checking out v0.28 0d6f4b068338c25f3de4ddab0747f714602037b5
+#git checkout --recurse-submodules 0d6f4b068338c25f3de4ddab0747f714602037b5
+echo checking out v0.29 9c5a60eb20104f7c320e263631c1371af9576911
+git checkout --recurse-submodules 9c5a60eb20104f7c320e263631c1371af9576911
 
 patch -p1 << EOF
 diff --git a/Makefile b/Makefile
