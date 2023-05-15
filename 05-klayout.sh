@@ -1,16 +1,16 @@
 #!/bin/sh
 
-mkdir klayout
-mkdir /opt/toolflows/share/klayout
+: ${PREFIX:=/opt/toolflows}
+export PREFIX
 
-cd klayout
+mkdir -p klayout "$PREFIX"/share/klayout &&
+cd klayout &&
 
-git clone https://github.com/KLayout/klayout.git
-cd klayout
-
-./build.sh -j8 -prefix /opt/toolflows/share/klayout
-
-ln -s /opt/toolflows/share/klayout/klayout /opt/toolflows/bin
+git clone https://github.com/KLayout/klayout.git &&
+cd klayout &&
+git checkout v0.28.7 &&
+./build.sh -j$(nproc) -prefix "$PREFIX"/share/klayout &&
+ln -s "$PREFIX"/share/klayout/klayout "$PREFIX"/bin || exit 1
 
 echo Done.
 
