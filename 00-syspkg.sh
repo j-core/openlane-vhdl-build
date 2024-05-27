@@ -46,7 +46,8 @@ apt-get install -y autossh || exit 1
 
 echo Running pip to install Python dependancies...
 
-pip3 install --system pandas &&
+# pip3 install --system pandas &&
+apt -y install python3-pandas &&
 apt-get install -y docutils || exit 1
 
 echo Packages for KLayout
@@ -73,11 +74,13 @@ apt-get install -y python3-venv &&
 apt-get install -y autopoint &&
 apt-get install -y ninja-build &&
 
-pip3 install --system pyinstaller || exit 1
+# pip3 install --system pyinstaller || exit 1
+apt -y install python3-pyinstaller || exit 1
 
 echo Packages for DFFRAM
 
-pip3 install --system click pyyaml || exit 1
+# pip3 install --system click pyyaml || exit 1
+apt -y install python3-click python3-pyyaml || exit 1
 
 echo Packages for ngspice
 
