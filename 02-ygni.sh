@@ -78,14 +78,31 @@ cd .. || exit 1
 echo build nextpnr
 
 echo checking out nextpnr-0.8
-(cd ../src/nextpnr ; git checkout --recurse-submodules nextpnr-0.8)
+(cd ../src/nextpnr ; git checkout --recurse-submodules nextpnr-0.8) &&
+
+(cd ../src/nextpnr ; patch -p1) << 'EOF' &&
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -62,10 +62,6 @@ check_cxx_compiler_hash_embed(HAS_HASH_EMBED CXX_FLAGS_HASH_EMBED)
+ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_HASH_EMBED}")
+ if (EXTERNAL_CHIPDB)
+     set(BBASM_MODE "binary")
+-elseif (HAS_HASH_EMBED)
+-    set(BBASM_MODE "embed")
+-elseif (WIN32)
+-    set(BBASM_MODE "resource")
+ else()
+     set(BBASM_MODE "string")
+ endif()
+EOF
 
 mkdir nextpnr &&
 cd nextpnr &&
 mkdir ../../src/nextpnr/tests/gui &&
 touch ../../src/nextpnr/tests/gui/CMakeLists.txt &&
 
-cmake ../../src/nextpnr -DARCH="ice40" -DCMAKE_INSTALL_PREFIX=$PREFIX -DICESTORM_INSTALL_PREFIX=$PREFIX -DBUILD_GUI=OFF -DBUILD_PYTHON=OFF -DSTATIC_BUILD=ON &&
+LDFLAGS="-L/opt/homebrew/Cellar/zstd/1.5.7/lib -L/opt/homebrew/Cellar/icu4c@77/77.1/lib" cmake ../../src/nextpnr -DARCH="ice40" -DCMAKE_INSTALL_PREFIX=$PREFIX -DICESTORM_INSTALL_PREFIX=$PREFIX -DBUILD_GUI=OFF -DBUILD_PYTHON=OFF -DSTATIC_BUILD=ON &&
 make -j12 &&
 make install &&
 
@@ -96,15 +113,13 @@ echo build ghdl
 git clone ../src/ghdl &&
 cd ghdl &&
 
-echo checking out v5.0.1 &&
-git checkout --recurse-submodules v5.0.1 &&
+echo LLVM requires close to tip of tree &&
+# echo checking out v5.0.1 &&
+# git checkout --recurse-submodules v5.0.1 &&
 
-# On MacOS, gnat lives in /opt
-export PATH=/opt/gnat/bin:$PATH &&
-#./configure --prefix=$PREFIX                    # for mcode
-LDFLAGS="-L/opt/gcc-13.2.0-aarch64//lib/gcc/aarch64-apple-darwin21/13.2.0 -lgcc" PATH=$PATH:/opt/homebrew/Cellar/llvm/19.1.1/bin ./configure --with-llvm-config --prefix=$PREFIX  # for llvm backend
+LDFLAGS="-L/opt/gcc-14.2.0-2-aarch64/lib/gcc/aarch64-apple-darwin23/14.2.0 -lgcc" PATH=$PATH:/opt/homebrew/Cellar/llvm/20.1.4/bin ./configure --with-llvm-config --prefix=$PREFIX
 
-PATH=$PATH:/opt/homebrew/Cellar/llvm/19.1.1/bin make -j12 &&
+PATH=$PATH:/opt/homebrew/Cellar/llvm/20.1.4/bin make -j12 &&
 make install &&
 
 cd .. || exit 1
@@ -113,7 +128,8 @@ echo build ghdl-yosys-plugin
 
 git clone ../src/ghdl-yosys-plugin &&
 cd ghdl-yosys-plugin &&
-git checkout --recurse-submodules 8c29f2cc7cc3b8c979acd02f543d25f321b55c30 &&
+echo LLVM requires close to tip of tree &&
+# git checkout --recurse-submodules 8c29f2cc7cc3b8c979acd02f543d25f321b55c30 &&
 
 export PATH=$PREFIX/bin:$PATH &&
 make &&
