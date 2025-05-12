@@ -70,6 +70,7 @@ echo Packages for OpenROAD
 apt-get install -y doxygen &&
 apt-get install -y swig &&
 apt-get install -y libspdlog-dev &&
+apt-get install -y googletest &&
 apt-get install -y liblemon-dev || exit 1
 
 apt-get install -y python3-ortools || exit 1

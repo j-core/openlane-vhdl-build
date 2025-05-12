@@ -51,8 +51,8 @@ echo build yosys
 git clone --recursive ../src/yosys &&
 cd yosys &&
 
-echo checking out v0.52 &&
-git checkout --recurse-submodules v0.52 &&
+echo checking out v0.53 &&
+git checkout --recurse-submodules v0.53 &&
 
 patch -p1 << EOF &&
 diff --git a/Makefile b/Makefile

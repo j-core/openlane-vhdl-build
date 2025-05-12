@@ -8,9 +8,8 @@ cd src
 
 git clone --recursive https://github.com/The-OpenROAD-Project/OpenROAD.git
 cd OpenROAD
-#git checkout --recurse-submodules c1c315118e68926dfff368f85e13bf50adaa920f
-#git checkout --recurse-submodules 4174c3ad802d2ac1d04d387d2c4b883903f6647e
-git checkout --recurse-submodules 127815b81a86
+git checkout --recurse-submodules 6b5937db431d2fa1023d3865f21ccd9b65781492
+# 7f6c37aa57467242807155c654deb350022d75c1
 
 #patch -p1 << EOF
 #EOF

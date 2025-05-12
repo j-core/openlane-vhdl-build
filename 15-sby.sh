@@ -17,7 +17,7 @@ index 7a86f6b..f5a7d7e 100644
 @@ -1,6 +1,6 @@
 
  DESTDIR =
--PREFIX = /usr/local
+-PREFIX ?= /usr/local
 +PREFIX = /opt/toolflows
  PROGRAM_PREFIX =
 

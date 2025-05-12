@@ -1,19 +1,20 @@
 #!/bin/bash
 
 PREFIX=/opt/toolflows
+mkdir $PREFIX
 
-export PATH=$PATH:$PREFIX/bin
+export PATH=$PREFIX/bin:$PATH
+
+prlimit -p $$ --nofile=65536:65536
 
 echo clone pdk
 
-git clone https://github.com/RTimothyEdwards/open_pdks.git
+git clone --recursive https://github.com/RTimothyEdwards/open_pdks.git
 
 echo build pdk
 
 cd open_pdks
 
-ulimit -Hn 65536
-ulimit  -n 65536
 ./configure --prefix=$PREFIX --with-sky130-variants=A --enable-sky130-pdk
 
 echo "make first time..."
@@ -23,10 +24,10 @@ make
 make install
 
 echo SOURCES timestamp
-touch /opt/toolflows/share/pdk/sky130A/SOURCES
+touch $PREFIX/share/pdk/sky130A/SOURCES
 
 echo tlef link for DFFRAM
-ln -s /opt/toolflows/share/pdk/sky130A/libs.ref/sky130_fd_sc_hd/techlef/sky130_fd_sc_hd__nom.tlef \
-      /opt/toolflows/share/pdk/sky130A/libs.ref/sky130_fd_sc_hd/techlef/sky130_fd_sc_hd.tlef
+ln -s $PREFIX/share/pdk/sky130A/libs.ref/sky130_fd_sc_hd/techlef/sky130_fd_sc_hd__nom.tlef \
+      $PREFIX/share/pdk/sky130A/libs.ref/sky130_fd_sc_hd/techlef/sky130_fd_sc_hd.tlef
 
 cd ..
