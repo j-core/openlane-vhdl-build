@@ -71,9 +71,13 @@ apt-get install -y doxygen &&
 apt-get install -y swig &&
 apt-get install -y libspdlog-dev &&
 apt-get install -y googletest &&
+apt-get install -y libgtest-dev &&
+apt-get install -y libgmock-dev &&
+apt-get install -y pandoc &&
 apt-get install -y liblemon-dev || exit 1
 
-apt-get install -y python3-ortools || exit 1
+#apt-get install -y python3-ortools || exit 1
+#pip3 install --break-system-packages ortools || exit 1
 
 echo Packages for OpenLane
 
