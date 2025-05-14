@@ -108,6 +108,8 @@ apt-get install -y python3-deprecated &&
 apt-get install -y python3-semver &&
 apt-get install -y python3-python3-types-pyyaml &&
 apt-get install -y python3-rapidfuzz &&
+apt-get install -y antlr4 &&
+apt-get install -y python3-antlr4 &&
 apt-get install -y verilator &&
 
 apt-get install -y python3-pyinstaller || exit 1
