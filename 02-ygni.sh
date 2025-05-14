@@ -54,19 +54,28 @@ cd yosys &&
 echo checking out v0.53 &&
 git checkout --recurse-submodules v0.53 &&
 
-patch -p1 << EOF &&
+patch -p1 << 'EOF' &&
 diff --git a/Makefile b/Makefile
 --- a/Makefile
 +++ b/Makefile
-@@ -53,7 +53,7 @@ SANITIZER =
+@@ -26,7 +26,7 @@ ENABLE_LIBYOSYS := 0
+ ENABLE_ZLIB := 1
+
+ # python wrappers
+-ENABLE_PYOSYS := 0
++ENABLE_PYOSYS := 1
+
+ # other configuration flags
+ ENABLE_GCOV := 0
+@@ -60,7 +60,7 @@ CLANG_LTO := -flto=thin
  PROGRAM_PREFIX :=
 
- OS := \$(shell uname -s)
+ OS := $(shell uname -s)
 -PREFIX ?= /usr/local
 +PREFIX ?= $PREFIX
  INSTALL_SUDO :=
-
- ifneq (\$(wildcard Makefile.conf),)
+ ifneq ($(filter MINGW%,$(OS)),)
+ OS := MINGW
 EOF
 
 make config-gcc

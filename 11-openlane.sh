@@ -44,8 +44,32 @@ cd netgen
 make -j8
 make install
 
-cd ../../
+cd ..
 
+git clone --recursive https://github.com/efabless/ioplace_parser.git
+
+cd ioplace_parser
+make
+pip3 install --break-system-packages .
+
+cd ..
+
+git clone --recursive https://github.com/efabless/libparse-python.git
+
+cd libparse-python
+make
+pip3 install --break-system-packages .
+
+cd ..
+
+git clone --recursive https://github.com/perlpunk/pyyaml-core.git
+
+cd pyyaml-core 
+make
+pip3 install --break-system-packages .
+
+cd ../../
+exit
 # For some reason openlane needs to build out of the install directory.
 echo clone OpenLane
 echo putting it in $PREFIX/share

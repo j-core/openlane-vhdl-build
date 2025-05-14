@@ -84,6 +84,31 @@ echo Packages for OpenLane
 apt-get install -y python3-venv &&
 apt-get install -y autopoint &&
 apt-get install -y ninja-build &&
+apt-get install -y python3-cloup &&
+apt-get install -y python3-httpx &&
+apt-get install -y python3-pyfakefs
+apt-get install -y python3-pytest &&
+apt-get install -y python3-pytest-xdist &&
+apt-get install -y python3-pillow &&
+apt-get install -y python3-mdformat &&
+apt-get install -y python3-furo &&
+apt-get install -y python3-docutils &&
+apt-get install -y python3-sphinx &&
+apt-get install -y python3-sphinx-autobuild &&
+apt-get install -y python3-sphinx-autodoc-typehints &&
+apt-get install -y python3-sphinx-design &&
+apt-get install -y python3-myst-parser &&
+apt-get install -y python3-docstring-parser &&
+apt-get install -y python3-sphinx-copybutton &&
+apt-get install -y python3-sphinxcontrib-spelling &&
+apt-get install -y python3-sphinxcontrib-bibtex &&
+apt-get install -y python3-sphinx-tippy &&
+apt-get install -y python3-sphinx-subfigure &&
+apt-get install -y python3-deprecated &&
+apt-get install -y python3-semver &&
+apt-get install -y python3-python3-types-pyyaml &&
+apt-get install -y python3-rapidfuzz &&
+apt-get install -y verilator &&
 
 apt-get install -y python3-pyinstaller || exit 1
 
