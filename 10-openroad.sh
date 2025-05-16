@@ -441,6 +441,12 @@ cd OpenROAD
 echo Install...
 make -C build install
 
+cat >> /etc/ld.so.conf.d/toolflows.conf << 'EOF'
+/opt/toolflows/lib
+EOF
+
+ldconfig
+
 cd ..
 
 echo Done.

@@ -15,8 +15,8 @@ echo build magic &&
 git clone ../src/magic &&
 
 cd magic &&
-#echo Updating to known working version...
-#git checkout 9402b0dcddebcdc71af7043de3db5be8a3186e65
+echo Updating to known working version... &&
+git checkout 6b9efefc02ff3194b9d2ae30d28eaf700ed46af4 || exit 1
 
 CFLAGS="-Wno-implicit-function-declaration -Wno-error" ./configure --prefix=$PREFIX &&
 make -j$(nproc) &&
