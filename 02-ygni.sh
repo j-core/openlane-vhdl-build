@@ -51,8 +51,8 @@ echo build yosys
 git clone --recursive ../src/yosys &&
 cd yosys &&
 
-echo checking out v0.53 &&
-git checkout --recurse-submodules v0.53 &&
+echo checking out v0.55 &&
+git checkout --recurse-submodules v0.55 &&
 
 patch -p1 << 'EOF' &&
 diff --git a/Makefile b/Makefile
@@ -111,7 +111,7 @@ cd nextpnr &&
 mkdir ../../src/nextpnr/tests/gui &&
 touch ../../src/nextpnr/tests/gui/CMakeLists.txt &&
 
-LDFLAGS="-L/opt/homebrew/Cellar/zstd/1.5.7/lib -L/opt/homebrew/Cellar/icu4c@77/77.1/lib" cmake ../../src/nextpnr -DARCH="ice40" -DCMAKE_INSTALL_PREFIX=$PREFIX -DICESTORM_INSTALL_PREFIX=$PREFIX -DBUILD_GUI=OFF -DBUILD_PYTHON=OFF -DSTATIC_BUILD=ON &&
+LDFLAGS="-L/opt/homebrew/opt/zstd/lib -L/opt/homebrew/opt/icu4/lib" cmake ../../src/nextpnr -DARCH="ice40" -DCMAKE_INSTALL_PREFIX=$PREFIX -DICESTORM_INSTALL_PREFIX=$PREFIX -DBUILD_GUI=OFF -DBUILD_PYTHON=OFF -DSTATIC_BUILD=ON &&
 make -j12 &&
 make install &&
 
@@ -123,12 +123,12 @@ git clone ../src/ghdl &&
 cd ghdl &&
 
 echo LLVM requires close to tip of tree &&
-# echo checking out v5.0.1 &&
-# git checkout --recurse-submodules v5.0.1 &&
+echo checking out v5.1.1 &&
+git checkout --recurse-submodules v5.1.1 &&
 
-LDFLAGS="-L/opt/gcc-14.2.0-2-aarch64/lib/gcc/aarch64-apple-darwin23/14.2.0 -lgcc" PATH=$PATH:/opt/homebrew/Cellar/llvm/20.1.4/bin ./configure --with-llvm-config --prefix=$PREFIX
+LDFLAGS="-L/opt/gcc-14.2.0-2-aarch64/lib/gcc/aarch64-apple-darwin23/14.2.0 -lgcc" PATH=$PATH:/opt/homebrew/opt/llvm/bin ./configure --with-llvm-config --prefix=$PREFIX
 
-PATH=$PATH:/opt/homebrew/Cellar/llvm/20.1.4/bin make -j12 &&
+PATH=$PATH:/opt/homebrew/opt/llvm/bin make -j12 &&
 make install &&
 
 cd .. || exit 1
@@ -138,7 +138,6 @@ echo build ghdl-yosys-plugin
 git clone ../src/ghdl-yosys-plugin &&
 cd ghdl-yosys-plugin &&
 echo LLVM requires close to tip of tree &&
-# git checkout --recurse-submodules 8c29f2cc7cc3b8c979acd02f543d25f321b55c30 &&
 
 export PATH=$PREFIX/bin:$PATH &&
 make &&
