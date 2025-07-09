@@ -111,7 +111,7 @@ cd nextpnr &&
 mkdir ../../src/nextpnr/tests/gui &&
 touch ../../src/nextpnr/tests/gui/CMakeLists.txt &&
 
-LDFLAGS="-L/opt/homebrew/opt/zstd/lib -L/opt/homebrew/opt/icu4/lib" cmake ../../src/nextpnr -DARCH="ice40" -DCMAKE_INSTALL_PREFIX=$PREFIX -DICESTORM_INSTALL_PREFIX=$PREFIX -DBUILD_GUI=OFF -DBUILD_PYTHON=OFF -DSTATIC_BUILD=ON &&
+LDFLAGS="-L/opt/homebrew/opt/zstd/lib -L/opt/homebrew/opt/icu4c/lib" cmake ../../src/nextpnr -DARCH="ice40" -DCMAKE_INSTALL_PREFIX=$PREFIX -DICESTORM_INSTALL_PREFIX=$PREFIX -DBUILD_GUI=OFF -DBUILD_PYTHON=OFF -DSTATIC_BUILD=ON &&
 make -j12 &&
 make install &&
 
@@ -142,6 +142,8 @@ echo LLVM requires close to tip of tree &&
 export PATH=$PREFIX/bin:$PATH &&
 make &&
 make install &&
+
+ln -s /opt/gcc-14.2.0-2-aarch64/lib/gcc/aarch64-apple-darwin23/14.2.0/adalib/libgnat-14.dylib /opt/toolflows/lib/libgnat-14.dylib
 
 cd .. || exit 1
 

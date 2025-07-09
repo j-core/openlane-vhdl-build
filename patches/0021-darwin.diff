@@ -1,0 +1,18 @@
+diff -ru a/gcc/config/host-darwin.c b/gcc/config/host-darwin.c
+--- a/gcc/config/host-darwin.c	2021-04-08 13:56:28.000000000 +0200
++++ b/gcc/config/host-darwin.c	2021-04-20 23:05:04.000000000 +0200
+@@ -22,6 +22,8 @@
+ #include "coretypes.h"
+ #include "diagnostic-core.h"
+ #include "config/host-darwin.h"
++#include "hosthooks.h"
++#include "hosthooks-def.h"
+ 
+ /* Yes, this is really supposed to work.  */
+ /* This allows for a pagesize of 16384, which we have on Darwin20, but should
+@@ -78,3 +80,5 @@
+ 
+   return ret;
+ }
++
++const struct host_hooks host_hooks = HOST_HOOKS_INITIALIZER;

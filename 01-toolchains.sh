@@ -8,10 +8,15 @@ export PREFIX
 echo clone musl-cross-make
 
 git clone https://github.com/richfelker/musl-cross-make.git &&
+cp patches/* musl-cross-make/patches/gcc-9.4.0 &&
 cd musl-cross-make 
+
 echo config &&
 
 echo "OUTPUT = $PREFIX" > config.mak &&
+echo "BINUTILS_CONFIG += --with-system-zlib" >> config.mak &&
+echo "GCC_CONFIG += --with-system-zlib" >> config.mak &&
+echo "CXXFLAGS += -std=c++17" >> config.mak &&
 cat presets/j2-fdpic >> config.mak &&
 
 echo patch for specs &&
@@ -175,7 +180,7 @@ echo building a bare sh2-elf binutils
 mkdir bare-binutils &&
 cd bare-binutils &&
 
-../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_binutils/configure --prefix=$PREFIX  --enable-deterministic-archives --target=sh2-elf --disable-separate-code --disable-werror &&
+../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_binutils/configure --with-system-zlib --prefix=$PREFIX  --enable-deterministic-archives --target=sh2-elf --disable-separate-code --disable-werror &&
 make -j12 &&
 
 echo install bare metal binutils &&
@@ -278,7 +283,7 @@ echo building a bare sh2-elf gcc for C language &&
 mkdir bare-gcc &&
 cd bare-gcc &&
 
-../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_gcc/configure --prefix=$PREFIX  --target=sh2-elf --disable-bootstrap --disable-assembly --disable-werror --disable-libmudflap --disable-libsanitizer --disable-gnu-indirect-function --disable-libmpx --disable-libmudflap --disable-libstdcxx-pch --disable-ssp --disable-libssp --enable-languages=c,c++ --with-newlib --without-headers --disable-hosted-libstdcxx &&
+../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_gcc/configure --with-system-zlib --prefix=$PREFIX  --target=sh2-elf --disable-bootstrap --disable-assembly --disable-werror --disable-libmudflap --disable-libsanitizer --disable-gnu-indirect-function --disable-libmpx --disable-libmudflap --disable-libstdcxx-pch --disable-ssp --disable-libssp --enable-languages=c,c++ --with-newlib --without-headers --disable-hosted-libstdcxx &&
 
 make -j12 all-gcc &&
 make -j12 all-target-libgcc &&
@@ -295,7 +300,7 @@ echo building a bare sh2-j1-elf binutils
 mkdir nomult-binutils &&
 cd nomult-binutils &&
 
-../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_binutils/configure --prefix=$PREFIX  --enable-deterministic-archives --target=sh2-j1-elf --disable-separate-code --disable-werror &&
+../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_binutils/configure --with-system-zlib --prefix=$PREFIX  --enable-deterministic-archives --target=sh2-j1-elf --disable-separate-code --disable-werror &&
 make -j12 &&
 
 echo install bare metal binutils &&
@@ -304,7 +309,7 @@ cd .. || exit 1
 
 echo patching gcc for nomult
 
-(cd musl-cross-make ; patch --follow-symlinks -p0 ) << 'EOF' &&
+(cd musl-cross-make ; patch -p0 ) << 'EOF' &&
 diff -urN gcc-9.4.0.orig/gcc/config/sh/sh.md /home/jeff/work/j1-tools/musl-cross-make/gcc-9.4.0.orig/gcc/config/sh/sh.md
 --- gcc-9.4.0.orig/gcc/config/sh/sh.md	2021-06-01 07:53:04.636473777 +0000
 +++ /home/jeff/work/j1-tools/musl-cross-make/gcc-9.4.0.orig/gcc/config/sh/sh.md	2024-09-12 05:11:58.930801166 +0000
@@ -728,7 +733,7 @@ echo building a nomult sh2-elf gcc for C language &&
 mkdir nomult-gcc &&
 cd nomult-gcc &&
 
-../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_gcc/configure --prefix=$PREFIX  --target=sh2-j1-elf --disable-bootstrap --disable-assembly --disable-werror --disable-libmudflap --disable-libsanitizer --disable-gnu-indirect-function --disable-libmpx --disable-libmudflap --disable-libstdcxx-pch --disable-ssp --disable-libssp --enable-languages=c,c++ --with-newlib --without-headers --disable-hosted-libstdcxx &&
+../musl-cross-make/build/local/sh2eb-linux-muslfdpic/src_gcc/configure --with-system-zlib --prefix=$PREFIX  --target=sh2-j1-elf --disable-bootstrap --disable-assembly --disable-werror --disable-libmudflap --disable-libsanitizer --disable-gnu-indirect-function --disable-libmpx --disable-libmudflap --disable-libstdcxx-pch --disable-ssp --disable-libssp --enable-languages=c,c++ --with-newlib --without-headers --disable-hosted-libstdcxx &&
 
 make -j12 all-gcc &&
 make -j12 all-target-libgcc &&
@@ -750,11 +755,11 @@ cd minimal-lib
 make clean; CROSS_COMPILE=sh2-elf- make
 
 rm -f /opt/toolchains/lib/gcc/sh2-elf/*/*.o
-cp -va *.[oa] /opt/toolchains/sh2-elf/lib
-cp -rva include /opt/toolchains/sh2-elf
+cp -vp *.[oa] /opt/toolchains/sh2-elf/lib
+cp -rvp include /opt/toolchains/sh2-elf
 
 make clean; CROSS_COMPILE=sh2-j1-elf- make
 
 rm -f /opt/toolchains/lib/gcc/sh2-j1-elf/*/*.o
-cp -va *.[oa] /opt/toolchains/sh2-j1-elf/lib
-cp -rva include /opt/toolchains/sh2-j1-elf
+cp -vp *.[oa] /opt/toolchains/sh2-j1-elf/lib
+cp -rvp include /opt/toolchains/sh2-j1-elf
