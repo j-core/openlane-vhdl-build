@@ -5,10 +5,12 @@
 : ${PREFIX:=/opt/toolchains}
 export PREFIX
 
+export SCR=/home/jeff/openlane-vhdl-build
+
 echo clone musl-cross-make
 
 git clone https://github.com/richfelker/musl-cross-make.git &&
-cp patches/* musl-cross-make/patches/gcc-9.4.0 &&
+cp $SCR/patches/* musl-cross-make/patches/gcc-9.4.0 &&
 cd musl-cross-make 
 
 echo config &&
