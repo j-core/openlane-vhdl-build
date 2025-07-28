@@ -23,17 +23,34 @@ cat presets/j2-fdpic >> config.mak &&
 
 echo patch for specs &&
 cat >> patches/gcc-9.4.0/0020-gcc-specs.patch << 'EOF' &&
---- gcc-9.4.0.orig/gcc/gcc.c	2021-06-01 02:53:04.800475820 -0500
-+++ gcc-9.4.0/gcc/gcc.c	2023-05-12 22:49:06.476185322 -0500
+--- gcc-9.4.0.orig/gcc/gcc.c	2021-06-01 16:53:04
++++ gcc-9.4.0/gcc/gcc.c	2025-07-28 17:34:36
 @@ -2178,7 +2179,7 @@
        /* Is this a special command that starts with '%'? */
-              /* Don't allow this for the main specs file, since it would
+       /* Don't allow this for the main specs file, since it would
  	 encourage people to overwrite it.  */
 -      if (*p == '%' && !main_p)
 +      if (*p == '%')
  	{
  	  p1 = p;
  	  while (*p && *p != '\n')
+@@ -7729,6 +7730,16 @@
+ 			      PREFIX_PRIORITY_LAST, 0, 1);
+     }
+ 
++  /* We need to check standard_exec_prefix/spec_machine_suffix/user.specs
++     for any chipset and target overrides.  */
++  specs_file = (char *) alloca (strlen (standard_exec_prefix)
++		       + strlen (spec_machine_suffix) + sizeof ("user.specs"));
++  strcpy (specs_file, standard_exec_prefix);
++  strcat (specs_file, spec_machine_suffix);
++  strcat (specs_file, "user.specs");
++  if (access (specs_file, R_OK) == 0)
++    read_specs (specs_file, false, true);
++
+   /* Process any user specified specs in the order given on the command
+      line.  */
+   for (struct user_specs *uptr = user_specs_head; uptr; uptr = uptr->next)
 EOF
 
 echo patch for vfork  &&
