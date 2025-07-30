@@ -13,7 +13,8 @@ cd ..
 
 git clone --recursive https://github.com/The-OpenROAD-Project/OpenROAD.git
 cd OpenROAD
-git checkout --recurse-submodules 834b7a0fb6de03c8e584256af2ecb7889b568343
+git checkout --recurse-submodules edf00dff99f6c40d67a30c0e22a8191c5d2ed9d6
+#834b7a0fb6de03c8e584256af2ecb7889b568343
 #6b5937db431d2fa1023d3865f21ccd9b65781492
 patch -p1 << 'EOF'
 diff --git a/src/cts/src/HTreeBuilder.cpp b/src/cts/src/HTreeBuilder.cpp
