@@ -79,7 +79,9 @@ echo Create script to make librelane available as a tool
 cat >> librelane << 'EOF'
 #/bin/bash
 
-PYTHONPATH=$PYTHONPATH:/opt/toolflows/share/librelane python3 -m librelane --manual-pdk "$@"
+PYTHONPATH=$PYTHONPATH:/opt/toolflows/share/librelane:/opt/toolflows/share/klayout/pymod \
+LD_LIBRARY_PATH=/opt/toolflows/lib \
+python3 -m librelane --manual-pdk --pdk-root=/opt/toolflows/share/pdk "$@"
 EOF
 
 chmod +x librelane
