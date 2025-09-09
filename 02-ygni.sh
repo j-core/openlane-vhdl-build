@@ -86,21 +86,23 @@ cd .. || exit 1
 
 echo build nextpnr
 
-echo checking out nextpnr-0.8
-(cd ../src/nextpnr ; git checkout --recurse-submodules nextpnr-0.8) &&
+echo checking out nextpnr-0.9
+(cd ../src/nextpnr ; git checkout --recurse-submodules nextpnr-0.9) &&
 
 (cd ../src/nextpnr ; patch -p1) << 'EOF' &&
 diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 562c718d..7eef3c69 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -62,10 +62,6 @@ check_cxx_compiler_hash_embed(HAS_HASH_EMBED CXX_FLAGS_HASH_EMBED)
+@@ -62,11 +62,6 @@ check_cxx_compiler_hash_embed(HAS_HASH_EMBED CXX_FLAGS_HASH_EMBED)
  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_HASH_EMBED}")
  if (EXTERNAL_CHIPDB)
      set(BBASM_MODE "binary")
 -elseif (HAS_HASH_EMBED)
 -    set(BBASM_MODE "embed")
--elseif (WIN32)
+-elseif (WIN32 AND NOT HAS_HASH_EMBED)
 -    set(BBASM_MODE "resource")
+-    add_definitions(-DBBAS_ARE_RESOURCES)
  else()
      set(BBASM_MODE "string")
  endif()
