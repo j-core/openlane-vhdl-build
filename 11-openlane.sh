@@ -72,6 +72,8 @@ cd /opt/toolflows/share
 
 echo Cloning librelane
 git clone https://github.com/librelane/librelane.git
+echo Cloning librelane-summary
+git clone https://github.com/mattvenn/librelane_summary.git
 
 cd ../../bin
 
@@ -85,4 +87,15 @@ python3 -m librelane --manual-pdk --pdk-root=/opt/toolflows/share/pdk "$@"
 EOF
 
 chmod +x librelane
+
+echo Create script to make librelane-summary available as a tool
+cat >> librelane-summary << 'EOF'
+#!/bin/bash
+
+PDK_ROOT=/opt/toolflows/share/pdk \
+PYTHONPATH=$PYTHONPATH:/opt/toolflows/share/librelane:/opt/toolflows/share/klayout/pymod \
+/opt/toolflows/share/librelane_summary/summary.py "$@"
+EOF
+
+chmod +x librelane-summary
 
