@@ -51,23 +51,24 @@ echo build yosys
 git clone --recursive ../src/yosys &&
 cd yosys &&
 
-echo checking out v0.59.1 &&
-git checkout --recurse-submodules v0.59.1 &&
+echo checking out v0.60 &&
+git checkout --recurse-submodules v0.60 &&
 
 patch -p1 << 'EOF' &&
 diff --git a/Makefile b/Makefile
+index 1c1e19f5f..1142c983f 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -26,7 +26,7 @@ ENABLE_LIBYOSYS := 0
- ENABLE_ZLIB := 1
+@@ -28,7 +28,7 @@ ENABLE_ZLIB := 1
+ ENABLE_HELP_SOURCE := 0
 
  # python wrappers
 -ENABLE_PYOSYS := 0
 +ENABLE_PYOSYS := 1
+ PYOSYS_USE_UV := 1
 
  # other configuration flags
- ENABLE_GCOV := 0
-@@ -60,7 +60,7 @@ CLANG_LTO := -flto=thin
+@@ -68,7 +68,7 @@ CLANG_LTO := -flto=thin
  PROGRAM_PREFIX :=
 
  OS := $(shell uname -s)

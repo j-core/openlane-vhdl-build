@@ -50,7 +50,8 @@ echo Running pip to install Python dependancies...
 
 apt-get install -y python3-pandas &&
 apt-get install -y docutils &&
-pip install --upgrade cmake || exit 1
+pip install --upgrade cmake &&
+pip install uv --break-system-packages || exit 1
 
 echo Packages for KLayout
 
