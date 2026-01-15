@@ -51,8 +51,8 @@ echo build yosys
 git clone --recursive ../src/yosys &&
 cd yosys &&
 
-echo checking out v0.60 &&
-git checkout --recurse-submodules v0.60 &&
+echo checking out v0.61 &&
+git checkout --recurse-submodules v0.61 &&
 
 patch -p1 << 'EOF' &&
 diff --git a/Makefile b/Makefile
@@ -289,6 +289,7 @@ echo build ghdl-yosys-plugin
 
 git clone ../src/ghdl-yosys-plugin &&
 cd ghdl-yosys-plugin &&
+git checkout ad5be7439eb4331343e26f9199d3678985088fed &&
 echo LLVM requires close to tip of tree &&
 
 export PATH=$PREFIX/bin:$PATH &&
