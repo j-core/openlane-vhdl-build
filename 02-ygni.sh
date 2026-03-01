@@ -2,6 +2,7 @@
 
 : ${PREFIX:=/opt/toolflows}
 export PREFIX
+export SCR=/home/jeff/openlane-vhdl-build
 
 echo making install dir $PREFIX
 
@@ -16,6 +17,9 @@ git clone https://github.com/YosysHQ/nextpnr.git &&
 
 git clone https://github.com/ghdl/ghdl.git &&
 git clone https://github.com/ghdl/ghdl-yosys-plugin.git &&
+
+git clone https://codeberg.org/djeffdionne/yosys_vhdl_backend.git &&
+git clone https://codeberg.org/djeffdionne/yosys_vhdl_rename.git &&
 
 cd .. || exit 1
 
@@ -278,6 +282,8 @@ index 9b44ef607..dec318ff1 100755
    else
 EOF
 
+patch -p1 < $SCR/patches/ghdl-recursive-record-v5.1.1.patch || exit 1
+
 LDFLAGS="-L/opt/gcc-14.2.0-2-aarch64/lib/gcc/aarch64-apple-darwin23/14.2.0 -lgcc" PATH=$PATH:/opt/homebrew/opt/llvm/bin ./configure --with-llvm-config --prefix=$PREFIX
 
 PATH=$PATH:/opt/homebrew/opt/llvm/bin make -j12 &&
@@ -297,6 +303,20 @@ make &&
 make install &&
 
 ln -s /opt/gcc-14.2.0-2-aarch64/lib/gcc/aarch64-apple-darwin23/14.2.0/adalib/libgnat-14.dylib /opt/toolflows/lib/libgnat-14.dylib
+
+cd .. || exit 1
+
+git clone ../src/yosys_vhdl_backend &&
+cd yosys_vhdl_backend &&
+make &&
+make install &&
+
+cd .. || exit 1
+
+git clone ../src/yosys_vhdl_rename &&
+cd yosys_vhdl_rename &&
+make &&
+make install &&
 
 cd .. || exit 1
 
