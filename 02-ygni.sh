@@ -284,7 +284,7 @@ EOF
 
 patch -p1 < $SCR/patches/ghdl-recursive-record-v5.1.1.patch || exit 1
 
-LDFLAGS="-L/opt/gcc-14.2.0-2-aarch64/lib/gcc/aarch64-apple-darwin23/14.2.0 -lgcc" PATH=$PATH:/opt/homebrew/opt/llvm/bin ./configure --with-llvm-config --prefix=$PREFIX
+LDFLAGS="-L/opt/gcc-14.2.0-2-aarch64/lib/gcc/aarch64-apple-darwin23/14.2.0 -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib" PATH=$PATH:/opt/homebrew/opt/llvm/bin ./configure --with-llvm-config --prefix=$PREFIX
 
 PATH=$PATH:/opt/homebrew/opt/llvm/bin make -j12 &&
 make install &&
