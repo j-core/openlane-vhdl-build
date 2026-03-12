@@ -264,25 +264,10 @@ git clone ../src/ghdl &&
 cd ghdl &&
 
 echo LLVM requires close to tip of tree &&
-echo checking out v5.1.1 &&
-git checkout --recurse-submodules v5.1.1 &&
+echo checking out v6.0.0 &&
+git checkout --recurse-submodules v6.0.0 &&
 
-patch -p1 << 'EOF' &&
-diff --git a/configure b/configure
-index 9b44ef607..dec318ff1 100755
---- a/configure
-+++ b/configure
-@@ -325,6 +325,7 @@ if test $backend = llvm -o $backend = llvm_jit; then
-        check_version 18.1 $llvm_version ||
-        check_version 19. $llvm_version ||
-        check_version 20. $llvm_version ||
-+       check_version 21. $llvm_version ||
-        false; then
-     echo "Debugging is enabled with llvm $llvm_version"
-   else
-EOF
-
-patch -p1 < $SCR/patches/ghdl-recursive-record-v5.1.1.patch || exit 1
+patch -p1 < $SCR/patches/ghdl-recursive-record-expansion.patch || exit 1
 
 LDFLAGS="-L/opt/gcc-14.2.0-2-aarch64/lib/gcc/aarch64-apple-darwin23/14.2.0 -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib" PATH=$PATH:/opt/homebrew/opt/llvm/bin ./configure --with-llvm-config --prefix=$PREFIX
 
@@ -295,7 +280,7 @@ echo build ghdl-yosys-plugin
 
 git clone ../src/ghdl-yosys-plugin &&
 cd ghdl-yosys-plugin &&
-git checkout ad5be7439eb4331343e26f9199d3678985088fed &&
+git checkout 07a30ed39fb6a078f1bf7e9e88ce9ed712380ec2 &&
 echo LLVM requires close to tip of tree &&
 
 export PATH=$PREFIX/bin:$PATH &&
