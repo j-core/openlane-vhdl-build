@@ -34,6 +34,8 @@ echo build icestorm
 git clone ../src/icestorm &&
 cd icestorm &&
 
+patch -p1 < $SCR/patches/0023-ftx.diff || exit 1
+
 patch -p1 <<EOF &&
 --- a/config.mk
 +++ b/config.mk

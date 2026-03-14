@@ -1,0 +1,749 @@
+diff --git a/iceprog/Makefile b/iceprog/Makefile
+index f41263e..8df5496 100644
+--- a/iceprog/Makefile
++++ b/iceprog/Makefile
+@@ -11,7 +11,7 @@ endif
+ 
+ all: $(PROGRAM_PREFIX)iceprog$(EXE)
+ 
+-$(PROGRAM_PREFIX)iceprog$(EXE): iceprog.o mpsse.o
++$(PROGRAM_PREFIX)iceprog$(EXE): iceprog.o mpsse.o ftxbitbang.o
+ 	$(CC) -o $@ $(LDFLAGS) $^ $(LDLIBS)
+ 
+ install: all
+diff --git a/iceprog/ftxbitbang.c b/iceprog/ftxbitbang.c
+new file mode 100644
+index 0000000..96ac619
+--- /dev/null
++++ b/iceprog/ftxbitbang.c
+@@ -0,0 +1,205 @@
++/*
++ *  iceprog -- simple programming tool for FTDI-based Lattice iCE programmers
++ *
++ *  Copyright (C) 2015  Clifford Wolf <clifford@clifford.at>
++ *  Copyright (C) 2018  Piotr Esden-Tempski <piotr@esden.net>
++ *  Copyright (C) 2024  D. Jeff Dionne <Jeff@CoreSemi.io>
++ *
++ *  Permission to use, copy, modify, and/or distribute this software for any
++ *  purpose with or without fee is hereby granted, provided that the above
++ *  copyright notice and this permission notice appear in all copies.
++ *
++ *  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
++ *  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
++ *  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
++ *  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
++ *  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
++ *  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
++ *  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++ *
++ *  Relevant Documents:
++ *  -------------------
++ *  https://ftdichip.com/wp-content/uploads/2020/08/AN_373-Bit-Bang-Modes-for-the-FT-X-Series.pdf
++ */
++
++#define _GNU_SOURCE
++
++#include <ftdi.h>
++#include <stdio.h>
++#include <stdint.h>
++#include <stdbool.h>
++#include <stdlib.h>
++#include <unistd.h>
++
++#include "spi.h"
++
++/*
++FT231X 2mm iCE40   FLASH
++register function ftdipin connectorpin calculator flash_pin
++0x01 TXD 20   -
++0x02 RXD  4   6   /CS    1
++0x04 RTS  2   5   MISO   2
++0x08 CTS  9   2   MOSI   5
++0x10 DTR  1   8   CDONE  -
++0x20 DSR  7   4   SCLK   6
++0x40 DCD  8   1   RESET  -
++0x80 RI   5   3   HOLD   7
++     GND      7          4
++     VDD                 8
++*/
++
++/* what are we using each register for when flashing jtag */
++#define PIN_SCK  0x20   // source clock
++#define PIN_MISO 0x04   // data line: master in slave out (s->m)
++#define PIN_SS   0x02   // chip select ("slave select")
++#define PIN_MOSI 0x08   // data line: master out slave in (m->s)
++#define PIN_RST  0x40   // reset (hold LOW to disable FPGA)
++#define PIN_DONE 0x10   // done (signal read from FPGA)
++#define PIN_HOLD 0x80   // hold: puts the flash in hold mode
++
++/* select output pins, all other pins are input */
++static uint8_t gpio_ddr;
++static uint8_t gpio_in;
++static uint8_t gpio_out;
++
++static struct ftdi_context *ftdi;
++static int txn_last_noread;
++static int tx_cnt;
++
++static uint8_t tx_buf[512];
++static uint8_t rx_buf[512];
++
++static void ftx_transaction(uint8_t *rx, uint8_t *data, unsigned size)
++{
++	if (rx && txn_last_noread) ftdi_tciflush(ftdi);
++	tx_cnt += ftdi_write_data(ftdi, data, size);
++	txn_last_noread = 0;
++	if (rx) ftdi_read_data(ftdi, rx, size);
++	else {
++		txn_last_noread = 1;
++		if (tx_cnt > 511) {
++			ftdi_tciflush(ftdi); // why does this have to be here?
++			tx_cnt = 0;
++		}
++	}
++	gpio_in = rx ? rx[0] : data[0];
++}
++
++static void exchange_bytes(uint8_t *data, int n)
++{
++	uint8_t v;
++	int i,j,b;
++
++	for (j=b=0; j<n; j++) {
++		v = data[j];
++		for (i=0; i<8; i++, v<<=1, b++) {
++			tx_buf[b*2] = ((v & 0x80) ? PIN_MOSI : 0) | gpio_out;
++			tx_buf[b*2+1] = PIN_SCK | tx_buf[b*2];
++		}
++	}
++	ftx_transaction(rx_buf, tx_buf, 16*n);
++
++	for (j=b=0; j<n; j++) {
++		data[j] = 0;
++		for (i=0; i<8; i++, b++) data[j] = (data[j]<<1) | ((rx_buf[b*2+1] & PIN_MISO) ? 1 : 0);
++	}
++}
++
++static void send_bytes(uint8_t *data, int n)
++{
++	uint8_t v;
++	int i,j,b;
++
++	for (j=b=0; j<n; j++) {
++		v = data[j];
++		for (i=0; i<8; i++, v<<=1, b++) {
++			tx_buf[b*2] = ((v & 0x80) ? PIN_MOSI : 0) | gpio_out;
++			tx_buf[b*2+1] = PIN_SCK | tx_buf[b*2];
++		}
++	}
++	ftx_transaction((void *)0, tx_buf, 16*n);
++}
++
++void ftx_send(uint8_t *data, int n)
++{
++	int i;
++	for (i=0; i<n; i+=32) send_bytes(data + i, n > 31 ? 32 : n);
++}
++
++void ftx_xfer(uint8_t *data, int n)
++{
++	int i;
++	for (i=0; i<n; i+=32) exchange_bytes(data + i, n > 31 ? 32 : n);
++}
++
++uint8_t ftx_xfer_bits(uint8_t data, int n)
++{
++	return 0;
++}
++
++void ftx_set_gpio(uint8_t gpio, uint8_t direction)
++{
++	gpio_ddr = direction;
++	gpio_out = gpio & direction;
++	ftdi_tcioflush(ftdi);
++	ftdi_set_bitmode(ftdi, gpio_ddr, BITMODE_SYNCBB);
++
++	// This is wrong.  gpio overrides, so be careful
++	ftx_transaction(&gpio_in, &gpio_out, 1);
++}
++
++int ftx_get_gpio(void)
++{
++	ftdi_tcioflush(ftdi);
++	return gpio_in;
++}
++
++void ftx_clock(uint8_t n)
++{
++}
++
++void ftx_close(void)
++{
++	ftdi_tcioflush(ftdi);
++	ftdi_set_bitmode(ftdi, 0, BITMODE_SYNCBB);
++	ftdi_tcioflush(ftdi);
++}
++
++spi_t ftx_spi = { ftx_send, ftx_xfer, ftx_xfer_bits, ftx_set_gpio, ftx_get_gpio, ftx_clock, ftx_close,
++		  PIN_SCK, PIN_MOSI, PIN_MISO, PIN_SS, PIN_RST, PIN_DONE, PIN_HOLD };
++
++spi_t *ftx_init(const char *devstr, bool slow_clock)
++{
++	// init a ftdi context
++	if (!(ftdi = ftdi_new())) {
++	fprintf(stderr, "ftdi_new failed\n");
++	exit(1);
++	}
++
++	// try to open usb
++	if (ftdi_usb_open(ftdi, 0x0403, 0x6015)) {
++		fprintf(stderr, "unable to open ftdi device: (%s)\n",
++		ftdi_get_error_string(ftdi));
++		ftdi_free(ftdi);
++	exit(2);
++	}
++
++	// Read out FTDIChip-ID of 230X type chips
++	if (ftdi->type == TYPE_230X) {
++		unsigned int chipid = 0;
++
++		printf("ftdi_read_chipid: %d\n", ftdi_read_chipid(ftdi, &chipid));
++		printf("FTDI chipid: %X\n", chipid);
++	}
++
++	ftdi_set_bitmode(ftdi, 0xf0, BITMODE_CBUS);
++
++	// Mode
++	ftdi_set_baudrate(ftdi,115200); // 16x, 2bits/clock = 921kHz 
++	ftdi_set_bitmode(ftdi, gpio_ddr, BITMODE_SYNCBB);
++	ftdi_set_latency_timer(ftdi, 1); // deliver input in the next 1ms USB poll cycle
++	ftdi_tcioflush(ftdi);
++
++	printf("ftx init %s\n", devstr);
++	return &ftx_spi;
++}
+diff --git a/iceprog/iceprog.c b/iceprog/iceprog.c
+index d86e874..65d34d1 100644
+--- a/iceprog/iceprog.c
++++ b/iceprog/iceprog.c
+@@ -40,8 +40,9 @@
+ #include <fcntl.h> /* _O_BINARY */
+ #endif
+ 
+-#include "mpsse.h"
++#include "spi.h"
+ 
++static spi_t *spi;
+ static bool verbose = false;
+ 
+ // ---------------------------------------------------------
+@@ -96,25 +97,17 @@ enum flash_cmd {
+ static void set_cs_creset(int cs_b, int creset_b)
+ {
+ 	uint8_t gpio = 0;
+-	uint8_t direction = 0x03;
++	uint8_t direction = spi->sck | spi->mosi;
+ 
+-	if (!cs_b) {
+-		// ADBUS4 (GPIOL0)
+-		direction |= 0x10;
+-	}
+-
+-	if (!creset_b) {
+-		// ADBUS7 (GPIOL3)
+-		direction |= 0x80;
+-	}
++	if (!cs_b) direction     |= spi->cs_b;
++	if (!creset_b) direction |= spi->reset_b;
+ 
+-	mpsse_set_gpio(gpio, direction);
++	spi->set_gpio(gpio, direction);
+ }
+ 
+ static bool get_cdone(void)
+ {
+-	// ADBUS6 (GPIOL2)
+-	return (mpsse_readb_low() & 0x40) != 0;
++	return (spi->get_gpio() & spi->done_b) != 0;
+ }
+ 
+ // ---------------------------------------------------------
+@@ -176,7 +169,7 @@ static void flash_read_id()
+ 	flash_chip_select();
+ 
+ 	// Write command and read first 4 bytes
+-	mpsse_xfer_spi(data, len);
++	spi->xfer(data, len);
+ 
+ 	if (data[4] == 0xFF)
+ 		fprintf(stderr, "Extended Device String Length is 0xFF, "
+@@ -185,7 +178,7 @@ static void flash_read_id()
+ 		// Read extended JEDEC ID bytes
+ 		if (data[4] != 0) {
+ 			len += data[4];
+-			mpsse_xfer_spi(data + 5, len - 5);
++			spi->xfer(data + 5, len - 5);
+ 		}
+ 	}
+ 
+@@ -204,12 +197,12 @@ static void flash_reset()
+ 
+ 	// This disables CRM is if it was enabled
+ 	flash_chip_select();
+-	mpsse_xfer_spi(data, 8);
++	spi->xfer(data, 8);
+ 	flash_chip_deselect();
+ 
+ 	// This disables QPI if it was enable
+ 	flash_chip_select();
+-	mpsse_xfer_spi_bits(0xFF, 2);
++	spi->xfer_bits(0xFF, 2);
+ 	flash_chip_deselect();
+ }
+ 
+@@ -217,7 +210,7 @@ static void flash_power_up()
+ {
+ 	uint8_t data_rpd[1] = { FC_RPD };
+ 	flash_chip_select();
+-	mpsse_xfer_spi(data_rpd, 1);
++	spi->xfer(data_rpd, 1);
+ 	flash_chip_deselect();
+ }
+ 
+@@ -225,7 +218,7 @@ static void flash_power_down()
+ {
+ 	uint8_t data[1] = { FC_PD };
+ 	flash_chip_select();
+-	mpsse_xfer_spi(data, 1);
++	spi->xfer(data, 1);
+ 	flash_chip_deselect();
+ }
+ 
+@@ -234,7 +227,7 @@ static uint8_t flash_read_status()
+ 	uint8_t data[2] = { FC_RSR1 };
+ 
+ 	flash_chip_select();
+-	mpsse_xfer_spi(data, 2);
++	spi->xfer(data, 2);
+ 	flash_chip_deselect();
+ 
+ 	if (verbose) {
+@@ -297,7 +290,7 @@ static void flash_write_enable()
+ 
+ 	uint8_t data[1] = { FC_WE };
+ 	flash_chip_select();
+-	mpsse_xfer_spi(data, 1);
++	spi->xfer(data, 1);
+ 	flash_chip_deselect();
+ 
+ 	if (verbose) {
+@@ -312,7 +305,7 @@ static void flash_bulk_erase()
+ 
+ 	uint8_t data[1] = { FC_CE };
+ 	flash_chip_select();
+-	mpsse_xfer_spi(data, 1);
++	spi->xfer(data, 1);
+ 	flash_chip_deselect();
+ }
+ 
+@@ -323,7 +316,7 @@ static void flash_4kB_sector_erase(int addr)
+ 	uint8_t command[4] = { FC_SE, (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr };
+ 
+ 	flash_chip_select();
+-	mpsse_send_spi(command, 4);
++	spi->send(command, 4);
+ 	flash_chip_deselect();
+ }
+ 
+@@ -334,7 +327,7 @@ static void flash_32kB_sector_erase(int addr)
+ 	uint8_t command[4] = { FC_BE32, (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr };
+ 
+ 	flash_chip_select();
+-	mpsse_send_spi(command, 4);
++	spi->send(command, 4);
+ 	flash_chip_deselect();
+ }
+ 
+@@ -345,7 +338,7 @@ static void flash_64kB_sector_erase(int addr)
+ 	uint8_t command[4] = { FC_BE64, (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr };
+ 
+ 	flash_chip_select();
+-	mpsse_send_spi(command, 4);
++	spi->send(command, 4);
+ 	flash_chip_deselect();
+ }
+ 
+@@ -357,8 +350,8 @@ static void flash_prog(int addr, uint8_t *data, int n)
+ 	uint8_t command[4] = { FC_PP, (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr };
+ 
+ 	flash_chip_select();
+-	mpsse_send_spi(command, 4);
+-	mpsse_send_spi(data, n);
++	spi->send(command, 4);
++	spi->send(data, n);
+ 	flash_chip_deselect();
+ 
+ 	if (verbose)
+@@ -374,9 +367,9 @@ static void flash_read(int addr, uint8_t *data, int n)
+ 	uint8_t command[4] = { FC_RD, (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr };
+ 
+ 	flash_chip_select();
+-	mpsse_send_spi(command, 4);
++	spi->send(command, 4);
+ 	memset(data, 0, n);
+-	mpsse_xfer_spi(data, n);
++	spi->xfer(data, n);
+ 	flash_chip_deselect();
+ 
+ 	if (verbose)
+@@ -395,7 +388,7 @@ static void flash_wait()
+ 		uint8_t data[2] = { FC_RSR1 };
+ 
+ 		flash_chip_select();
+-		mpsse_xfer_spi(data, 2);
++		spi->xfer(data, 2);
+ 		flash_chip_deselect();
+ 
+ 		if ((data[1] & 0x01) == 0) {
+@@ -435,7 +428,7 @@ static void flash_disable_protection()
+ 	// Write Status Register 1 <- 0x00
+ 	uint8_t data[2] = { FC_WSR1, 0x00 };
+ 	flash_chip_select();
+-	mpsse_xfer_spi(data, 2);
++	spi->xfer(data, 2);
+ 	flash_chip_deselect();
+ 	
+ 	flash_wait();
+@@ -444,7 +437,7 @@ static void flash_disable_protection()
+ 	data[0] = FC_RSR1;
+ 
+ 	flash_chip_select();
+-	mpsse_xfer_spi(data, 2);
++	spi->xfer(data, 2);
+ 	flash_chip_deselect();
+ 
+ 	if (data[1] != 0x00)
+@@ -462,7 +455,7 @@ static void flash_enable_quad()
+ 	// Write Status Register 2 <- 0x02
+ 	uint8_t data[2] = { FC_WSR2, 0x02 };
+ 	flash_chip_select();
+-	mpsse_xfer_spi(data, 2);
++	spi->xfer(data, 2);
+ 	flash_chip_deselect();
+ 
+ 	flash_wait();
+@@ -471,7 +464,7 @@ static void flash_enable_quad()
+ 	data[0] = FC_RSR2;
+ 
+ 	flash_chip_select();
+-	mpsse_xfer_spi(data, 2);
++	spi->xfer(data, 2);
+ 	flash_chip_deselect();
+ 
+ 	if ((data[1] & 0x02) != 0x02)
+@@ -859,7 +852,8 @@ int main(int argc, char **argv)
+ 
+ 	fprintf(stderr, "init..\n");
+ 
+-	mpsse_init(ifnum, devstr, slow_clock);
++	if (devstr && !strncmp(devstr, "ftx", 3)) spi = ftx_init(devstr, slow_clock);
++	else spi = mpsse_init(ifnum, devstr, slow_clock);
+ 
+ 	fprintf(stderr, "cdone: %s\n", get_cdone() ? "high" : "low");
+ 
+@@ -919,11 +913,10 @@ int main(int argc, char **argv)
+ 				break;
+ 			if (verbose)
+ 				fprintf(stderr, "sending %d bytes.\n", rc);
+-			mpsse_send_spi(buffer, rc);
++			spi->send(buffer, rc);
+ 		}
+ 
+-		mpsse_send_dummy_bytes(6);
+-		mpsse_send_dummy_bit();
++		spi->clock(6*8+1);
+ 
+ 		fprintf(stderr, "cdone: %s\n", get_cdone() ? "high" : "low");
+ 	}
+@@ -1052,7 +1045,8 @@ int main(int argc, char **argv)
+ 					  flash_power_down();
+ 					flash_release_reset();
+ 					usleep(250000);
+-					mpsse_error(3);
++					spi->close();
++					exit(3);
+ 				}
+ 			}
+ 
+@@ -1082,6 +1076,6 @@ int main(int argc, char **argv)
+ 	// ---------------------------------------------------------
+ 
+ 	fprintf(stderr, "Bye.\n");
+-	mpsse_close();
++	spi->close();
+ 	return 0;
+ }
+diff --git a/iceprog/mpsse.c b/iceprog/mpsse.c
+index 0106c45..2279257 100644
+--- a/iceprog/mpsse.c
++++ b/iceprog/mpsse.c
+@@ -30,7 +30,7 @@
+ #include <stdlib.h>
+ #include <unistd.h>
+ 
+-#include "mpsse.h"
++#include "spi.h"
+ 
+ // ---------------------------------------------------------
+ // MPSSE / FTDI definitions
+@@ -44,7 +44,7 @@
+  * xDBUS2 |   MISO | MPSSE
+  * xDBUS3 |     nc |
+  * xDBUS4 |     CS | GPIO
+- * xDBUS5 |     nc |
++ * xDBUS5 |   HOLD | GPIO
+  * xDBUS6 |  CDONE | GPIO
+  * xDBUS7 | CRESET | GPIO
+  */
+@@ -132,7 +132,7 @@ enum mpsse_cmd
+ // MPSSE / FTDI function implementations
+ // ---------------------------------------------------------
+ 
+-void mpsse_check_rx()
++static void mpsse_check_rx()
+ {
+ 	while (1) {
+ 		uint8_t data;
+@@ -143,7 +143,7 @@ void mpsse_check_rx()
+ 	}
+ }
+ 
+-void mpsse_error(int status)
++static void mpsse_error(int status)
+ {
+ 	mpsse_check_rx();
+ 	fprintf(stderr, "ABORT.\n");
+@@ -156,7 +156,7 @@ void mpsse_error(int status)
+ 	exit(status);
+ }
+ 
+-uint8_t mpsse_recv_byte()
++static uint8_t mpsse_recv_byte()
+ {
+ 	uint8_t data;
+ 	while (1) {
+@@ -172,7 +172,7 @@ uint8_t mpsse_recv_byte()
+ 	return data;
+ }
+ 
+-void mpsse_send_byte(uint8_t data)
++static void mpsse_send_byte(uint8_t data)
+ {
+ 	int rc = ftdi_write_data(&mpsse_ftdic, &data, 1);
+ 	if (rc != 1) {
+@@ -181,7 +181,7 @@ void mpsse_send_byte(uint8_t data)
+ 	}
+ }
+ 
+-void mpsse_send_spi(uint8_t *data, int n)
++void mpsse_send(uint8_t *data, int n)
+ {
+ 	if (n < 1)
+ 		return;
+@@ -198,7 +198,7 @@ void mpsse_send_spi(uint8_t *data, int n)
+ 	}
+ }
+ 
+-void mpsse_xfer_spi(uint8_t *data, int n)
++void mpsse_xfer(uint8_t *data, int n)
+ {
+ 	if (n < 1)
+ 		return;
+@@ -218,7 +218,7 @@ void mpsse_xfer_spi(uint8_t *data, int n)
+ 		data[i] = mpsse_recv_byte();
+ }
+ 
+-uint8_t mpsse_xfer_spi_bits(uint8_t data, int n)
++uint8_t mpsse_xfer_bits(uint8_t data, int n)
+ {
+ 	if (n < 1)
+ 		return 0;
+@@ -238,7 +238,7 @@ void mpsse_set_gpio(uint8_t gpio, uint8_t direction)
+ 	mpsse_send_byte(direction); /* Direction */
+ }
+ 
+-int mpsse_readb_low(void)
++int mpsse_get_gpio(void)
+ {
+ 	uint8_t data;
+ 	mpsse_send_byte(MC_READB_LOW);
+@@ -246,31 +246,26 @@ int mpsse_readb_low(void)
+ 	return data;
+ }
+ 
+-int mpsse_readb_high(void)
++void mpsse_clock(uint8_t n)
+ {
+-	uint8_t data;
+-	mpsse_send_byte(MC_READB_HIGH);
+-	data = mpsse_recv_byte();
+-	return data;
+-}
+-
+-void mpsse_send_dummy_bytes(uint8_t n)
+-{
+-	// add 8 x count dummy bits (aka n bytes)
+-	mpsse_send_byte(MC_CLK_N8);
++	mpsse_send_byte(MC_CLK_N);
+ 	mpsse_send_byte(n - 1);
+ 	mpsse_send_byte(0x00);
+ 
+ }
+ 
+-void mpsse_send_dummy_bit(void)
++void mpsse_close(void)
+ {
+-	// add 1  dummy bit
+-	mpsse_send_byte(MC_CLK_N);
+-	mpsse_send_byte(0x00);
++	ftdi_set_latency_timer(&mpsse_ftdic, mpsse_ftdi_latency);
++	ftdi_disable_bitbang(&mpsse_ftdic);
++	ftdi_usb_close(&mpsse_ftdic);
++	ftdi_deinit(&mpsse_ftdic);
+ }
+ 
+-void mpsse_init(int ifnum, const char *devstr, bool slow_clock)
++spi_t mpsse_spi = { mpsse_send, mpsse_xfer, mpsse_xfer_bits, mpsse_set_gpio, mpsse_get_gpio, mpsse_clock, mpsse_close,
++		    0x01, 0x02, 0x04, 0x10, 0x80, 0x40, 0x20 };
++
++spi_t *mpsse_init(int ifnum, const char *devstr, bool slow_clock)
+ {
+ 	enum ftdi_interface ftdi_ifnum = INTERFACE_A;
+ 
+@@ -314,7 +309,7 @@ void mpsse_init(int ifnum, const char *devstr, bool slow_clock)
+ 		mpsse_error(2);
+ 	}
+ 
+-	if (ftdi_usb_purge_buffers(&mpsse_ftdic)) {
++	if (ftdi_tcioflush(&mpsse_ftdic)) {
+ 		fprintf(stderr, "Failed to purge buffers on iCE FTDI USB device.\n");
+ 		mpsse_error(2);
+ 	}
+@@ -352,12 +347,6 @@ void mpsse_init(int ifnum, const char *devstr, bool slow_clock)
+ 		mpsse_send_byte(0x00);
+ 		mpsse_send_byte(0x00);
+ 	}
+-}
+ 
+-void mpsse_close(void)
+-{
+-	ftdi_set_latency_timer(&mpsse_ftdic, mpsse_ftdi_latency);
+-	ftdi_disable_bitbang(&mpsse_ftdic);
+-	ftdi_usb_close(&mpsse_ftdic);
+-	ftdi_deinit(&mpsse_ftdic);
++        return &mpsse_spi;
+ }
+diff --git a/iceprog/mpsse.h b/iceprog/mpsse.h
+index eb10675..54dfa65 100644
+--- a/iceprog/mpsse.h
++++ b/iceprog/mpsse.h
+@@ -17,24 +17,30 @@
+  *  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+  */
+ 
+-#ifndef MPSSE_H
+-#define MPSSE_H
++#ifndef SPI_H
++#define SPI_H
+ 
+ #include <stdint.h>
+ 
+-void mpsse_check_rx(void);
+-void mpsse_error(int status);
+-uint8_t mpsse_recv_byte(void);
+-void mpsse_send_byte(uint8_t data);
+-void mpsse_send_spi(uint8_t *data, int n);
+-void mpsse_xfer_spi(uint8_t *data, int n);
+-uint8_t mpsse_xfer_spi_bits(uint8_t data, int n);
+-void mpsse_set_gpio(uint8_t gpio, uint8_t direction);
+-int mpsse_readb_low(void);
+-int mpsse_readb_high(void);
+-void mpsse_send_dummy_bytes(uint8_t n);
+-void mpsse_send_dummy_bit(void);
+-void mpsse_init(int ifnum, const char *devstr, bool slow_clock);
+-void mpsse_close(void);
++typedef struct spi {
++	void (*send) (uint8_t *data, int n);
++	void (*xfer) (uint8_t *data, int n);
++	uint8_t (*xfer_bits) (uint8_t data, int n);
++	void (*set_gpio) (uint8_t gpio, uint8_t direction);
++	int (*get_gpio) (void);
++	void (*clock) (uint8_t n);
++	void (*close) (void);
++	// bit masks
++	uint8_t sck;
++	uint8_t mosi;
++	uint8_t miso;
++	uint8_t cs_b;
++	uint8_t reset_b;
++	uint8_t done_b;
++	uint8_t hold_b;
++} spi_t;
+ 
+-#endif /* MPSSE_H */
++spi_t *mpsse_init(int ifnum, const char *devstr, bool slow_clock);
++spi_t *ftx_init(const char *devstr, bool slow_clock);
++
++#endif /* SPI_H */
+diff --git a/iceprog/spi.h b/iceprog/spi.h
+new file mode 100644
+index 0000000..1c9410b
+--- /dev/null
++++ b/iceprog/spi.h
+@@ -0,0 +1,46 @@
++/*
++ *  iceprog -- simple programming tool for FTDI-based Lattice iCE programmers
++ *
++ *  Copyright (C) 2015  Clifford Wolf <clifford@clifford.at>
++ *  Copyright (C) 2018  Piotr Esden-Tempski <piotr@esden.net>
++ *
++ *  Permission to use, copy, modify, and/or distribute this software for any
++ *  purpose with or without fee is hereby granted, provided that the above
++ *  copyright notice and this permission notice appear in all copies.
++ *
++ *  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
++ *  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
++ *  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
++ *  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
++ *  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
++ *  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
++ *  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++ */
++
++#ifndef SPI_H
++#define SPI_H
++
++#include <stdint.h>
++
++typedef struct spi {
++	void (*send) (uint8_t *data, int n);
++	void (*xfer) (uint8_t *data, int n);
++	uint8_t (*xfer_bits) (uint8_t data, int n);
++	void (*set_gpio) (uint8_t gpio, uint8_t direction);
++	int (*get_gpio) (void);
++	void (*clock) (uint8_t n);
++	void (*close) (void);
++	// bit masks
++	uint8_t sck;
++	uint8_t mosi;
++	uint8_t miso;
++	uint8_t cs_b;
++	uint8_t reset_b;
++	uint8_t done_b;
++	uint8_t hold_b;
++} spi_t;
++
++spi_t *mpsse_init(int ifnum, const char *devstr, bool slow_clock);
++spi_t *ftx_init(const char *devstr, bool slow_clock);
++
++#endif /* SPI_H */
