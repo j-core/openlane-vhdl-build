@@ -1,5 +1,21 @@
+From 20069e6e0102ac2d5d720f3ee482e38daae756b7 Mon Sep 17 00:00:00 2001
+From: Donald J Dionne <jeff@Mac.lan>
+Date: Sun, 15 Mar 2026 12:31:27 +0900
+Subject: [PATCH] synth-vhdl_insts: recursively expand nested record ports
+
+Extend Build_Ports_Desc, Inst_Input_Connect, and Inst_Output_Connect
+to recurse into sub-record fields instead of packing them as opaque
+vectors.  This produces chained bracket identifiers such as
+\p[outer][inner]\ which downstream tools (e.g. vhdl_rename) can
+convert to clean underscore-separated names.
+
+Fixes nested-record port visibility for OpenROAD / LibreLane flows.
+---
+ src/synth/synth-vhdl_insts.adb | 160 ++++++++++++++++++++++++++-------
+ 1 file changed, 126 insertions(+), 34 deletions(-)
+
 diff --git a/src/synth/synth-vhdl_insts.adb b/src/synth/synth-vhdl_insts.adb
-index e8a471dd4..d68dd8108 100644
+index 979ca2a8f..5087c09f2 100644
 --- a/src/synth/synth-vhdl_insts.adb
 +++ b/src/synth/synth-vhdl_insts.adb
 @@ -428,17 +428,74 @@ package body Synth.Vhdl_Insts is
@@ -106,7 +122,7 @@ index e8a471dd4..d68dd8108 100644
        else
           Idx := Idx + 1;
           Descs (Idx) := (Name => Port_Sname,
-@@ -950,6 +994,38 @@ package body Synth.Vhdl_Insts is
+@@ -951,6 +995,38 @@ package body Synth.Vhdl_Insts is
        end case;
     end Synth_Output_Assoc;
  
@@ -145,7 +161,7 @@ index e8a471dd4..d68dd8108 100644
     procedure Inst_Input_Connect (Syn_Inst : Synth_Instance_Acc;
                                   Inst : Instance;
                                   Inter : Node;
-@@ -958,16 +1034,8 @@ package body Synth.Vhdl_Insts is
+@@ -959,16 +1035,8 @@ package body Synth.Vhdl_Insts is
                                   N : Net) is
     begin
        if Can_Expand_Interface (Inter) then
@@ -164,7 +180,7 @@ index e8a471dd4..d68dd8108 100644
        else
           if N /= No_Net then
              Connect (Get_Input (Inst, Port), N);
-@@ -976,6 +1044,29 @@ package body Synth.Vhdl_Insts is
+@@ -977,6 +1045,29 @@ package body Synth.Vhdl_Insts is
        end if;
     end Inst_Input_Connect;
  
@@ -194,7 +210,7 @@ index e8a471dd4..d68dd8108 100644
     procedure Inst_Output_Connect (Syn_Inst : Synth_Instance_Acc;
                                    Inst : Instance;
                                    Inter : Node;
-@@ -985,12 +1076,13 @@ package body Synth.Vhdl_Insts is
+@@ -986,12 +1077,13 @@ package body Synth.Vhdl_Insts is
     begin
        if Can_Expand_Interface (Inter) then
           declare
@@ -213,3 +229,6 @@ index e8a471dd4..d68dd8108 100644
              N := Build2_Concat
                (Get_Build (Syn_Inst), Nets, Get_Location (Inst));
           end;
+-- 
+2.52.0
+
