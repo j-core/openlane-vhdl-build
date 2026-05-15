@@ -18,9 +18,6 @@ git clone https://github.com/YosysHQ/nextpnr.git &&
 git clone https://github.com/ghdl/ghdl.git &&
 git clone https://github.com/ghdl/ghdl-yosys-plugin.git &&
 
-git clone https://codeberg.org/djeffdionne/yosys_vhdl_backend.git &&
-git clone https://codeberg.org/djeffdionne/yosys_vhdl_rename.git &&
-
 cd .. || exit 1
 
 echo clone done
@@ -57,12 +54,12 @@ echo build yosys
 git clone --recursive ../src/yosys &&
 cd yosys &&
 
-echo checking out v0.63 &&
-git checkout --recurse-submodules v0.63 &&
+echo checking out v0.65 &&
+git checkout --recurse-submodules v0.65 &&
 
 patch -p1 << 'EOF' &&
 diff --git a/Makefile b/Makefile
-index 1c1e19f5f..1142c983f 100644
+index 1c1e19f5f..1142c983f 10.634
 --- a/Makefile
 +++ b/Makefile
 @@ -28,7 +28,7 @@ ENABLE_ZLIB := 1
@@ -98,8 +95,6 @@ echo checking out nextpnr-0.10
 
 mkdir nextpnr &&
 cd nextpnr &&
-#mkdir ../../src/nextpnr/tests/gui &&
-#touch ../../src/nextpnr/tests/gui/CMakeLists.txt &&
 
 LDFLAGS="-L/opt/homebrew/opt/zstd/lib -L/opt/homebrew/opt/icu4c/lib" cmake ../../src/nextpnr -DARCH="ice40" -DCMAKE_INSTALL_PREFIX=$PREFIX -DICESTORM_INSTALL_PREFIX=$PREFIX -DBUILD_GUI=OFF -DBUILD_PYTHON=OFF -DSTATIC_BUILD=ON &&
 make -j12 &&
@@ -112,11 +107,8 @@ echo build ghdl
 git clone ../src/ghdl &&
 cd ghdl &&
 
-echo LLVM requires close to tip of tree &&
-echo checking out v6.0.0 &&
-git checkout --recurse-submodules v6.0.0 &&
-
-patch -p1 < $SCR/patches/ghdl-recursive-record-expansion.patch || exit 1
+# echo checking out v6.0.0 &&
+# git checkout --recurse-submodules v6.0.0 &&
 
 LDFLAGS="-L/opt/gcc-14.2.0-2-aarch64/lib/gcc/aarch64-apple-darwin23/14.2.0 -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib" PATH=$PATH:/opt/homebrew/opt/llvm/bin ./configure --with-llvm-config --prefix=$PREFIX
 
@@ -129,28 +121,13 @@ echo build ghdl-yosys-plugin
 
 git clone ../src/ghdl-yosys-plugin &&
 cd ghdl-yosys-plugin &&
-git checkout 07a30ed39fb6a078f1bf7e9e88ce9ed712380ec2 &&
-echo LLVM requires close to tip of tree &&
+# git checkout 07a30ed39fb6a078f1bf7e9e88ce9ed712380ec2 &&
 
 export PATH=$PREFIX/bin:$PATH &&
 make &&
 make install &&
 
 ln -s /opt/gcc-14.2.0-2-aarch64/lib/gcc/aarch64-apple-darwin23/14.2.0/adalib/libgnat-14.dylib /opt/toolflows/lib/libgnat-14.dylib
-
-cd .. || exit 1
-
-git clone ../src/yosys_vhdl_backend &&
-cd yosys_vhdl_backend &&
-make &&
-make install &&
-
-cd .. || exit 1
-
-git clone ../src/yosys_vhdl_rename &&
-cd yosys_vhdl_rename &&
-make &&
-make install &&
 
 cd .. || exit 1
 
